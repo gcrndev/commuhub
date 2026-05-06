@@ -1,12 +1,53 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-// ATENÇÃO: No React Native usamos a versão 'native' da biblioteca de ícones
-import { ChevronLeft, ChevronRight, MapPin, Clock } from "lucide-react-native"; 
-import { mockCalendarEvents } from "../data/mockData.ts";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react-native";
+
+import { getEventos } from "../services/communityService";
+import type { Evento } from "../types/models";
 
 export default function CalendarioScreen() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 11)); // 11 de Abril de 2026
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 11));
   const [view, setView] = useState("month");
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadEventos() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getEventos();
+
+        if (isMounted) {
+          setEventos(data);
+        }
+      } catch {
+        if (isMounted) {
+          setError("Não foi possível carregar os eventos.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadEventos();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const monthNames = [
@@ -15,7 +56,6 @@ export default function CalendarioScreen() {
   ];
 
   const getDaysInMonth = (date: Date | null) => {
-
     if (!date) return [];
 
     const year = date.getFullYear();
@@ -38,7 +78,7 @@ export default function CalendarioScreen() {
   const getEventsForDate = (date: Date | null) => {
     if (!date) return [];
     const dateStr = date.toISOString().split("T")[0];
-    return mockCalendarEvents.filter((event) => event.date === dateStr);
+    return eventos.filter((event) => event.date === dateStr);
   };
 
   const previousMonth = () => {
@@ -54,14 +94,12 @@ export default function CalendarioScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Calendário</Text>
         <Text style={styles.headerSubtitle}>Eventos e atividades da comunidade</Text>
       </View>
 
       <View style={styles.content}>
-        {/* Controles de Navegação */}
         <View style={styles.card}>
           <View style={styles.navHeader}>
             <TouchableOpacity onPress={previousMonth} style={styles.iconButton}>
@@ -77,7 +115,6 @@ export default function CalendarioScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Vista Toggle */}
           <View style={styles.toggleContainer}>
             <TouchableOpacity
               onPress={() => setView("month")}
@@ -97,7 +134,6 @@ export default function CalendarioScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Calendário Mensal */}
           <View style={styles.grid}>
             {daysOfWeek.map((day) => (
               <View key={day} style={styles.dayHeaderCell}>
@@ -143,49 +179,56 @@ export default function CalendarioScreen() {
           </View>
         </View>
 
-        {/* Lista de Eventos */}
         <View style={styles.eventsSection}>
           <Text style={styles.eventsTitle}>Próximos Eventos</Text>
-          
-          {mockCalendarEvents
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            .map((event) => {
-              const eventDate = new Date(event.date);
-              const isPast = eventDate < today;
 
-              return (
-                <View key={event.id} style={[styles.eventCard, isPast && styles.eventCardPast]}>
-                  <View style={styles.eventRow}>
-                    <View style={styles.dateBadge}>
-                      <Text style={styles.dateBadgeMonth}>
-                        {eventDate.toLocaleDateString("pt-BR", { month: "short" }).toUpperCase()}
-                      </Text>
-                      <Text style={styles.dateBadgeDay}>{eventDate.getDate()}</Text>
+          {loading ? (
+            <ActivityIndicator color="#2563eb" style={styles.state} />
+          ) : error ? (
+            <Text style={styles.stateText}>{error}</Text>
+          ) : eventos.length === 0 ? (
+            <Text style={styles.stateText}>Nenhum evento encontrado.</Text>
+          ) : (
+            [...eventos]
+              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              .map((event) => {
+                const eventDate = new Date(event.date);
+                const isPast = eventDate < today;
+
+                return (
+                  <View key={event.id} style={[styles.eventCard, isPast && styles.eventCardPast]}>
+                    <View style={styles.eventRow}>
+                      <View style={styles.dateBadge}>
+                        <Text style={styles.dateBadgeMonth}>
+                          {eventDate.toLocaleDateString("pt-BR", { month: "short" }).toUpperCase()}
+                        </Text>
+                        <Text style={styles.dateBadgeDay}>{eventDate.getDate()}</Text>
+                      </View>
+
+                      <View style={styles.eventInfo}>
+                        <Text style={styles.eventTitle}>{event.title}</Text>
+
+                        <View style={styles.eventDetailsRow}>
+                          <Clock size={14} color="#4b5563" />
+                          <Text style={styles.eventDetailsText}>{event.time}</Text>
+                        </View>
+
+                        <View style={styles.eventDetailsRow}>
+                          <MapPin size={14} color="#4b5563" />
+                          <Text style={styles.eventDetailsText}>{event.location}</Text>
+                        </View>
+                      </View>
                     </View>
 
-                    <View style={styles.eventInfo}>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      
-                      <View style={styles.eventDetailsRow}>
-                        <Clock size={14} color="#4b5563" />
-                        <Text style={styles.eventDetailsText}>{event.time}</Text>
+                    {isPast && (
+                      <View style={styles.pastEventDivider}>
+                        <Text style={styles.pastEventText}>Evento passado</Text>
                       </View>
-                      
-                      <View style={styles.eventDetailsRow}>
-                        <MapPin size={14} color="#4b5563" />
-                        <Text style={styles.eventDetailsText}>{event.location}</Text>
-                      </View>
-                    </View>
+                    )}
                   </View>
-
-                  {isPast && (
-                    <View style={styles.pastEventDivider}>
-                      <Text style={styles.pastEventText}>Evento passado</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+                );
+              })
+          )}
         </View>
       </View>
     </ScrollView>
@@ -198,8 +241,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9fafb",
   },
   scrollContent: {
-    flexGrow: 1, 
-    paddingBottom: 40, // Dá um respiro no final da página para o último evento não ficar colado
+    flexGrow: 1,
+    paddingBottom: 40,
   },
   header: {
     backgroundColor: "#2563eb",
@@ -279,7 +322,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   dayHeaderCell: {
-    width: "14.28%", // 100% dividido por 7 dias
+    width: "14.28%",
     alignItems: "center",
     paddingVertical: 8,
   },
@@ -290,7 +333,7 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: "14.28%",
-    aspectRatio: 1, // Mantém os quadrados perfeitos
+    aspectRatio: 1,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -339,6 +382,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111827",
     marginBottom: 16,
+  },
+  state: {
+    marginTop: 24,
+  },
+  stateText: {
+    color: "#6b7280",
+    marginTop: 24,
+    textAlign: "center",
   },
   eventCard: {
     backgroundColor: "#ffffff",
@@ -403,6 +454,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
   },
-
-
 });
