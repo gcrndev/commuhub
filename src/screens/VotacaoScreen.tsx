@@ -7,19 +7,28 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CheckCircle, Clock, XCircle } from 'react-native-feather';
+
+import {
+  CheckCircle,
+  Clock,
+  XCircle,
+} from 'react-native-feather';
+
 import Svg, { Circle, G } from 'react-native-svg';
 
 import AppHeader from '../components/AppHeader';
 import { getVotacoes } from '../services/communityService';
 import { colors } from '../styles/colors';
 import { globalStyles } from '../styles/globalStyles';
+
 import type { Votacao } from '../types/models';
 
 export default function VotacaoScreen() {
   const [votacoes, setVotacoes] = useState<Votacao[]>([]);
   const [filter, setFilter] = useState('active');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] =
+    useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +39,7 @@ export default function VotacaoScreen() {
       try {
         setLoading(true);
         setError(null);
+
         const data = await getVotacoes();
 
         if (isMounted) {
@@ -37,7 +47,9 @@ export default function VotacaoScreen() {
         }
       } catch {
         if (isMounted) {
-          setError('Não foi possível carregar as votações.');
+          setError(
+            'Não foi possível carregar as votações.',
+          );
         }
       } finally {
         if (isMounted) {
@@ -65,21 +77,26 @@ export default function VotacaoScreen() {
       />
 
       <View style={globalStyles.mainContent}>
-        <View style={{ height: 60, marginTop: 20 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={globalStyles.filterWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
             {['active', 'closed', 'all'].map(f => (
               <TouchableOpacity
                 key={f}
                 onPress={() => setFilter(f)}
                 style={[
                   globalStyles.categoryPill,
-                  filter === f && globalStyles.categoryPillActive,
+                  filter === f &&
+                    globalStyles.categoryPillActive,
                 ]}
               >
                 <Text
                   style={[
                     globalStyles.categoryText,
-                    filter === f && globalStyles.categoryTextActive,
+                    filter === f &&
+                      globalStyles.categoryTextActive,
                   ]}
                 >
                   {f === 'active'
@@ -94,27 +111,53 @@ export default function VotacaoScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator
+            color={colors.primary}
+            style={globalStyles.loaderSpacing}
+          />
         ) : error ? (
-          <Text style={{ color: '#999', marginTop: 40, textAlign: 'center' }}>
+          <Text style={globalStyles.centeredEmptyText}>
             {error}
           </Text>
         ) : (
           <FlatList
             data={filteredVotacoes}
             keyExtractor={item => item.id}
+            contentContainerStyle={
+              globalStyles.listBottomSpacing
+            }
+            ListEmptyComponent={
+              <Text style={globalStyles.centeredEmptyText}>
+                Nenhuma votação encontrada.
+              </Text>
+            }
             renderItem={({ item }) => {
               const total =
-                item.votes.sim + item.votes.nao + item.votes.abstencao;
+                item.votes.sim +
+                item.votes.nao +
+                item.votes.abstencao;
+
               const simPerc =
-                total > 0 ? ((item.votes.sim / total) * 100).toFixed(0) : '0';
+                total > 0
+                  ? (
+                      (item.votes.sim / total) *
+                      100
+                    ).toFixed(0)
+                  : '0';
 
               const circumference = 251.2;
+
               const greenStroke =
-                total > 0 ? (item.votes.sim / total) * circumference : 0;
+                total > 0
+                  ? (item.votes.sim / total) *
+                    circumference
+                  : 0;
+
               const redStroke =
                 total > 0
-                  ? ((item.votes.sim + item.votes.nao) / total) *
+                  ? ((item.votes.sim +
+                      item.votes.nao) /
+                      total) *
                     circumference
                   : 0;
 
@@ -122,45 +165,42 @@ export default function VotacaoScreen() {
                 <View
                   style={[
                     globalStyles.docCard,
-                    { alignItems: 'stretch', flexDirection: 'column' },
+                    globalStyles.voteCard,
                   ]}
                 >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      marginBottom: 12,
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
+                  <View style={globalStyles.voteHeader}>
+                    <View style={globalStyles.flexOne}>
                       <Text
-                        style={{
-                          color: colors.textMain,
-                          fontSize: 18,
-                          fontWeight: 'bold',
-                        }}
+                        style={
+                          globalStyles.voteCardTitle
+                        }
                       >
                         {item.title}
                       </Text>
+
                       <Text
-                        style={{
-                          color: colors.gray,
-                          fontSize: 14,
-                          marginVertical: 4,
-                        }}
+                        style={
+                          globalStyles.voteDescription
+                        }
                       >
                         {item.description}
                       </Text>
+
                       <View
-                        style={{ alignItems: 'center', flexDirection: 'row' }}
+                        style={
+                          globalStyles.voteDeadlineRow
+                        }
                       >
-                        <Clock stroke={colors.gray} width={14} height={14} />
+                        <Clock
+                          stroke={colors.gray}
+                          width={14}
+                          height={14}
+                        />
+
                         <Text
-                          style={{
-                            color: colors.gray,
-                            fontSize: 12,
-                            marginLeft: 5,
-                          }}
+                          style={
+                            globalStyles.voteDeadlineText
+                          }
                         >
                           Termina em {item.deadline}
                         </Text>
@@ -168,111 +208,112 @@ export default function VotacaoScreen() {
                     </View>
 
                     <View
-                      style={{
-                        backgroundColor: item.userVoted
-                          ? '#E8F5E9'
-                          : '#FFF3E0',
-                        borderRadius: 12,
-                        height: 26,
-                        paddingHorizontal: 12,
-                        paddingVertical: 4,
-                      }}
+                      style={[
+                        globalStyles.voteStatusBadge,
+                        item.userVoted
+                          ? globalStyles.voteStatusSuccess
+                          : globalStyles.voteStatusPending,
+                      ]}
                     >
                       <Text
-                        style={{
-                          color: item.userVoted ? '#2E7D32' : '#EF6C00',
-                          fontSize: 12,
-                          fontWeight: 'bold',
-                        }}
+                        style={[
+                          globalStyles.voteStatusText,
+                          item.userVoted
+                            ? globalStyles.voteStatusSuccessText
+                            : globalStyles.voteStatusPendingText,
+                        ]}
                       >
-                        {item.userVoted ? 'Votou' : 'Votar'}
+                        {item.userVoted
+                          ? 'Votou'
+                          : 'Votar'}
                       </Text>
                     </View>
                   </View>
 
-                  <View style={{ marginBottom: 15 }}>
+                  <View
+                    style={
+                      globalStyles.voteProgressContainer
+                    }
+                  >
                     <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        marginBottom: 5,
-                      }}
+                      style={
+                        globalStyles.voteProgressHeader
+                      }
                     >
-                      <Text style={{ color: colors.gray, fontSize: 12 }}>
+                      <Text
+                        style={
+                          globalStyles.voteProgressLabel
+                        }
+                      >
                         Aprovação
                       </Text>
+
                       <Text
-                        style={{
-                          color: '#2ecc71',
-                          fontSize: 12,
-                          fontWeight: 'bold',
-                        }}
+                        style={
+                          globalStyles.voteProgressValue
+                        }
                       >
                         {simPerc}%
                       </Text>
                     </View>
+
                     <View
-                      style={{
-                        backgroundColor: '#EEE',
-                        borderRadius: 4,
-                        height: 8,
-                      }}
+                      style={
+                        globalStyles.progressBarBackground
+                      }
                     >
                       <View
-                        style={{
-                          backgroundColor: '#2ecc71',
-                          borderRadius: 4,
-                          height: 8,
-                          width: `${simPerc}%` as any,
-                        }}
+                        style={[
+                          globalStyles.progressBarFill,
+                          {
+                            width: `${simPerc}%` as any,
+                          },
+                        ]}
                       />
                     </View>
                   </View>
 
                   {!item.userVoted && (
                     <View
-                      style={{ flexDirection: 'row', gap: 10, marginTop: 5 }}
+                      style={
+                        globalStyles.voteActionsRow
+                      }
                     >
                       <TouchableOpacity
-                        style={{
-                          alignItems: 'center',
-                          backgroundColor: '#2ecc71',
-                          borderRadius: 8,
-                          flex: 1,
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          padding: 12,
-                        }}
+                        style={
+                          globalStyles.voteApproveButton
+                        }
                       >
-                        <CheckCircle stroke="#FFF" width={16} height={16} />
+                        <CheckCircle
+                          stroke="#FFF"
+                          width={16}
+                          height={16}
+                        />
+
                         <Text
-                          style={{
-                            color: '#FFF',
-                            fontWeight: 'bold',
-                            marginLeft: 5,
-                          }}
+                          style={
+                            globalStyles.voteActionText
+                          }
                         >
                           A Favor
                         </Text>
                       </TouchableOpacity>
+
                       <TouchableOpacity
-                        style={{
-                          alignItems: 'center',
-                          backgroundColor: '#e74c3c',
-                          borderRadius: 8,
-                          flex: 1,
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          padding: 12,
-                        }}
+                        style={
+                          globalStyles.voteRejectButton
+                        }
                       >
-                        <XCircle stroke="#FFF" width={16} height={16} />
+                        <XCircle
+                          stroke="#FFF"
+                          width={16}
+                          height={16}
+                        />
+
                         <Text
-                          style={{
-                            color: '#FFF',
-                            fontWeight: 'bold',
-                            marginLeft: 5,
-                          }}
+                          style={
+                            globalStyles.voteActionText
+                          }
                         >
                           Contra
                         </Text>
@@ -282,16 +323,20 @@ export default function VotacaoScreen() {
 
                   <TouchableOpacity
                     onPress={() =>
-                      setExpandedId(expandedId === item.id ? null : item.id)
+                      setExpandedId(
+                        expandedId === item.id
+                          ? null
+                          : item.id,
+                      )
                     }
-                    style={{ marginTop: 15, paddingVertical: 5 }}
+                    style={
+                      globalStyles.voteDetailsButton
+                    }
                   >
                     <Text
-                      style={{
-                        color: colors.primary,
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                      }}
+                      style={
+                        globalStyles.voteDetailsText
+                      }
                     >
                       {expandedId === item.id
                         ? 'Ocultar detalhes'
@@ -301,34 +346,37 @@ export default function VotacaoScreen() {
 
                   {expandedId === item.id && (
                     <View
-                      style={{
-                        borderTopColor: '#F0F0F0',
-                        borderTopWidth: 1,
-                        marginTop: 15,
-                        paddingTop: 15,
-                      }}
+                      style={
+                        globalStyles.voteExpandedSection
+                      }
                     >
                       <Text
-                        style={{
-                          color: colors.textMain,
-                          fontWeight: 'bold',
-                          marginBottom: 15,
-                        }}
+                        style={
+                          globalStyles.voteExpandedTitle
+                        }
                       >
                         Distribuição de Votos
                       </Text>
 
-                      <View style={{ alignItems: 'center', marginBottom: 25 }}>
+                      <View
+                        style={
+                          globalStyles.voteChartWrapper
+                        }
+                      >
                         <View
-                          style={{
-                            alignItems: 'center',
-                            height: 140,
-                            justifyContent: 'center',
-                            width: 140,
-                          }}
+                          style={
+                            globalStyles.voteChartContainer
+                          }
                         >
-                          <Svg width="140" height="140" viewBox="0 0 100 100">
-                            <G rotation="-90" origin="50, 50">
+                          <Svg
+                            width="140"
+                            height="140"
+                            viewBox="0 0 100 100"
+                          >
+                            <G
+                              rotation="-90"
+                              origin="50, 50"
+                            >
                               <Circle
                                 cx="50"
                                 cy="50"
@@ -337,6 +385,7 @@ export default function VotacaoScreen() {
                                 strokeWidth="10"
                                 fill="none"
                               />
+
                               <Circle
                                 cx="50"
                                 cy="50"
@@ -346,6 +395,7 @@ export default function VotacaoScreen() {
                                 fill="none"
                                 strokeDasharray={`${redStroke} ${circumference}`}
                               />
+
                               <Circle
                                 cx="50"
                                 cy="50"
@@ -357,22 +407,25 @@ export default function VotacaoScreen() {
                               />
                             </G>
                           </Svg>
+
                           <View
-                            style={{
-                              alignItems: 'center',
-                              position: 'absolute',
-                            }}
+                            style={
+                              globalStyles.voteChartCenter
+                            }
                           >
                             <Text
-                              style={{
-                                color: colors.textMain,
-                                fontSize: 20,
-                                fontWeight: 'bold',
-                              }}
+                              style={
+                                globalStyles.voteChartTotal
+                              }
                             >
                               {total}
                             </Text>
-                            <Text style={{ color: colors.gray, fontSize: 12 }}>
+
+                            <Text
+                              style={
+                                globalStyles.voteChartLabel
+                              }
+                            >
                               Votos
                             </Text>
                           </View>
@@ -380,22 +433,22 @@ export default function VotacaoScreen() {
                       </View>
 
                       <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-around',
-                          paddingBottom: 10,
-                        }}
+                        style={
+                          globalStyles.voteStatsRow
+                        }
                       >
                         <StatItem
                           label="A Favor"
                           value={item.votes.sim}
                           color="#2ecc71"
                         />
+
                         <StatItem
                           label="Contra"
                           value={item.votes.nao}
                           color="#e74c3c"
                         />
+
                         <StatItem
                           label="Abstenção"
                           value={item.votes.abstencao}
@@ -407,12 +460,6 @@ export default function VotacaoScreen() {
                 </View>
               );
             }}
-            ListEmptyComponent={
-              <Text style={{ color: '#999', marginTop: 40, textAlign: 'center' }}>
-                Nenhuma votação encontrada.
-              </Text>
-            }
-            contentContainerStyle={{ paddingBottom: 20 }}
           />
         )}
       </View>
@@ -426,9 +473,23 @@ type StatItemProps = {
   color: string;
 };
 
-const StatItem = ({ label, value, color }: StatItemProps) => (
-  <View style={{ alignItems: 'center' }}>
-    <Text style={{ color, fontSize: 22, fontWeight: 'bold' }}>{value}</Text>
-    <Text style={{ color: colors.gray, fontSize: 12 }}>{label}</Text>
+const StatItem = ({
+  label,
+  value,
+  color,
+}: StatItemProps) => (
+  <View style={globalStyles.centerItems}>
+    <Text
+      style={[
+        globalStyles.voteStatValue,
+        { color },
+      ]}
+    >
+      {value}
+    </Text>
+
+    <Text style={globalStyles.voteStatLabel}>
+      {label}
+    </Text>
   </View>
 );
