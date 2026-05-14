@@ -121,3 +121,50 @@ await supabase.from('documentos').insert({
 - Esta implementacao foi feita para contexto academico, com foco em simplicidade.
 - Para producao, passwords devem ser guardadas com hash ou usando Supabase Auth.
 - Para documentos privados, o bucket deve deixar de ser publico e o app deve usar `createSignedUrl`.
+
+## Push Notifications FCM
+
+Foi preparada a base backend para enviar push notifications via Firebase Cloud Messaging.
+
+### Tabelas
+
+- `public.profiles`: guarda o `fcm_token` associado ao `public.users.id`.
+- `public.notifications`: fila simples de notificacoes a enviar.
+
+Campos principais em `notifications`:
+
+- `user_id`: utilizador destinatario.
+- `title`: titulo da push.
+- `body`: corpo da push.
+- `data`: payload extra em JSON.
+- `sent_at`: preenchido quando o envio FCM tem sucesso.
+- `send_error`: preenchido quando o envio falha.
+
+As tabelas ficam privadas por RLS. O envio deve ser feito pela Edge Function com service role.
+
+### Edge Function
+
+A funcao `supabase/functions/push/index.ts` recebe o webhook de INSERT em `public.notifications`, procura o `fcm_token` em `public.profiles`, envia para FCM HTTP v1 e atualiza `sent_at` ou `send_error`.
+
+### Setup manual
+
+1. No Firebase, gerar service account JSON em `Project Settings > Service Accounts`.
+2. Guardar o JSON como secret no Supabase:
+
+```bash
+supabase secrets set FCM_SERVICE_ACCOUNT_JSON='<json inteiro>'
+```
+
+3. Fazer deploy da function:
+
+```bash
+supabase functions deploy push
+```
+
+4. Criar Database Webhook no Supabase:
+
+- tabela: `public.notifications`
+- evento: `INSERT`
+- target: Edge Function `push`
+- method: `POST`
+- header auth: service key

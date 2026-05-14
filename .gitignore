@@ -45,6 +45,8 @@ yarn-error.log
 .env
 .env.*
 !.env.example
+supabase/functions/service-account.json
+supabase/functions/**/service-account.json
 
 # fastlane
 #
