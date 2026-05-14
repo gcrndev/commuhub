@@ -78,7 +78,7 @@ export default function IndexScreen() {
 
             {notificacoes.map(n => (
               <View key={n.id} style={globalStyles.infoCard}>
-                <Text style={globalStyles.cardText}>
+                <Text style={globalStyles.cardTitle}>
                   {n.text}
                 </Text>
               </View>
