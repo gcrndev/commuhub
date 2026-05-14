@@ -151,11 +151,11 @@ async function sendFcmMessage({
       body: JSON.stringify({
         message: {
           token: fcmToken,
-          notification: {
+          data: stringifyData({
+            ...(notification.data ?? {}),
             title: notification.title ?? 'Commuhub',
             body: notification.body,
-          },
-          data: stringifyData(notification.data ?? {}),
+          }),
         },
       }),
     },

@@ -124,47 +124,102 @@ await supabase.from('documentos').insert({
 
 ## Push Notifications FCM
 
-Foi preparada a base backend para enviar push notifications via Firebase Cloud Messaging.
+Backend de push notifications implementado para Android usando Firebase Cloud
+Messaging, Supabase Edge Functions e webhook da base de dados.
 
-### Tabelas
+### O que foi feito
 
-- `public.profiles`: guarda o `fcm_token` associado ao `public.users.id`.
-- `public.notifications`: fila simples de notificacoes a enviar.
+- Criada a tabela `public.profiles` com `fcm_token`.
+- Criada a tabela `public.notifications` para guardar notificacoes a enviar.
+- Criada a Edge Function `supabase/functions/push/index.ts`.
+- Configurado o secret `FCM_SERVICE_ACCOUNT_JSON` no Supabase.
+- Criado webhook remoto: insert em `public.notifications` chama a funcao `push`.
+- Firebase Android app configurada com package `com.commuhub`.
+- Ficheiro Firebase Android colocado em `android/app/google-services.json`.
 
-Campos principais em `notifications`:
+Fluxo:
 
-- `user_id`: utilizador destinatario.
-- `title`: titulo da push.
-- `body`: corpo da push.
-- `data`: payload extra em JSON.
-- `sent_at`: preenchido quando o envio FCM tem sucesso.
-- `send_error`: preenchido quando o envio falha.
+1. A app grava o token FCM do utilizador em `public.profiles.fcm_token`.
+2. O backend insere uma linha em `public.notifications`.
+3. O webhook chama a Edge Function `push`.
+4. A funcao procura o token FCM do utilizador.
+5. A funcao envia a push para Firebase Cloud Messaging.
+6. Se enviar com sucesso, preenche `sent_at`.
+7. Se falhar, preenche `send_error`.
 
-As tabelas ficam privadas por RLS. O envio deve ser feito pela Edge Function com service role.
+### Formato da notificacao
 
-### Edge Function
+A mensagem enviada ao Firebase e **data-only**, como no tutorial do professor.
+Isto ajuda o app a tratar foreground, background e navegacao via Notifee.
 
-A funcao `supabase/functions/push/index.ts` recebe o webhook de INSERT em `public.notifications`, procura o `fcm_token` em `public.profiles`, envia para FCM HTTP v1 e atualiza `sent_at` ou `send_error`.
+O payload recebido pela app fica assim:
 
-### Setup manual
-
-1. No Firebase, gerar service account JSON em `Project Settings > Service Accounts`.
-2. Guardar o JSON como secret no Supabase:
-
-```bash
-supabase secrets set FCM_SERVICE_ACCOUNT_JSON='<json inteiro>'
+```ts
+remoteMessage.data = {
+  title: 'Titulo',
+  body: 'Mensagem',
+  screen: 'Votacoes',
+};
 ```
 
-3. Fazer deploy da function:
+O campo `screen` deve bater com uma screen real do projeto React Native:
 
-```bash
-supabase functions deploy push
+- `Inicio`
+- `Votacoes`
+- `Docs`
+- `Agenda`
+- `Perfil`
+
+### Como criar uma push
+
+Para testar quando ja existir token FCM real:
+
+```sql
+update public.profiles
+set fcm_token = '<TOKEN_FCM_REAL>',
+    fcm_token_updated_at = now()
+where id = '<USER_ID>';
+
+insert into public.notifications (user_id, title, body, data)
+values (
+  '<USER_ID>',
+  'Titulo teste',
+  'Mensagem teste',
+  '{"screen":"Votacoes"}'::jsonb
+);
 ```
 
-4. Criar Database Webhook no Supabase:
+Verificar resultado:
 
-- tabela: `public.notifications`
-- evento: `INSERT`
-- target: Edge Function `push`
-- method: `POST`
-- header auth: service key
+```sql
+select id, title, sent_at, send_error
+from public.notifications
+order by created_at desc
+limit 5;
+```
+
+### O que falta no app
+
+O backend esta pronto. Falta o colega integrar o app Android seguindo o tutorial:
+
+1. Instalar `@react-native-firebase/messaging`.
+2. Instalar `@notifee/react-native`.
+3. Configurar Gradle e `AndroidManifest.xml`.
+4. Obter o token FCM do dispositivo.
+5. Guardar o token no Supabase:
+
+```ts
+await supabase.from('profiles').upsert({
+  id: user.id,
+  fcm_token: token,
+  fcm_token_updated_at: new Date().toISOString(),
+});
+```
+
+6. Tratar `remoteMessage.data.screen` para navegar para a screen certa.
+
+### Comando util
+
+```bash
+supabase functions deploy push --project-ref chbccyllwibmlbvvexzw
+```
