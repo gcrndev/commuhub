@@ -23,6 +23,9 @@ export type Documento = {
   type: string;
   date: string;
   size: string;
+
+  filePath?: string; 
+  mimeType?: string;
 };
 
 export type Evento = {

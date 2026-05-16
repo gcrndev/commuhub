@@ -1,5 +1,11 @@
 import { getSupabaseClient } from '../lib/supabase';
-import type { Documento, Evento, Votacao, VotacaoStatus } from '../types/models';
+//import type { Documento, Evento, Votacao, VotacaoStatus } from '../types/models';
+import type {
+  
+  Evento,
+  Votacao,
+  VotacaoStatus,
+} from '../types/models';
 
 type VotacaoRow = {
   id: string | number;
@@ -22,6 +28,9 @@ type DocumentoRow = {
   type: string;
   date: string;
   size: string;
+  
+  file_path: string; 
+  mime_type: string;
 };
 
 type EventoRow = {
@@ -63,18 +72,21 @@ export async function getVotacoes(): Promise<Votacao[]> {
   }));
 }
 
-export async function getDocumentos(): Promise<Documento[]> {
+export async function getDocumentos(): Promise<any[]> {
+  // Nota: Alterei para any temporariamente até atualizar para o type global
   const supabase = getSupabaseClient();
 
+  // 2. Atualizar a query ao Supabase para puxar as novas colunas
   const { data, error } = await supabase
     .from('documentos')
-    .select('id,title,category,type,date,size')
+    .select('id,title,category,type,date,size,file_path,mime_type') 
     .order('id', { ascending: true });
 
   if (error) {
     throw error;
   }
 
+  // 3. Mapear os dados que vêm do Supabase para o formato da App
   return ((data ?? []) as DocumentoRow[]).map(row => ({
     id: String(row.id),
     title: row.title,
@@ -82,6 +94,8 @@ export async function getDocumentos(): Promise<Documento[]> {
     type: row.type,
     date: row.date,
     size: row.size,
+    filePath: row.file_path, // <-- convertemos de snake_case para camelCase para a UI
+    mimeType: row.mime_type,
   }));
 }
 
