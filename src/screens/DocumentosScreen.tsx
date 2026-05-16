@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Linking, Alert } from 'react-native';
 import { getSupabaseClient } from '../lib/supabase';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { setupPushNotifications } from '../services/notificationService';
 
 import {
   ActivityIndicator,
@@ -44,33 +45,39 @@ export default function DocumentosScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadDocumentos() {
-      try {
-        setLoading(true);
-        setError(null);
+async function loadDocumentos() {
+  try {
+    setLoading(true);
+    setError(null);
 
-        const data = await getDocumentos();
+    const data = await getDocumentos();
 
-        if (isMounted) {
-          setDocumentos(data);
-        }
-      } catch {
-        if (isMounted) {
-          setError('Não foi possível carregar os documentos.');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    if (isMounted) {
+      setDocumentos(data);
+
+      // --- INJECTAR ISTO AQUI ---
+      if (user?.id) {
+        setupPushNotifications(user.id);
       }
+      // --------------------------
     }
+  } catch {
+    if (isMounted) {
+      setError('Não foi possível carregar os documentos.');
+    }
+  } finally {
+    if (isMounted) {
+      setLoading(false);
+    }
+  }
+}
 
     loadDocumentos();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id]);
 
   const categories = [
     'Todos',
