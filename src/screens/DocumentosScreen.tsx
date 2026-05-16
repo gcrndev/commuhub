@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Linking, Alert } from 'react-native';
 import { getSupabaseClient } from '../lib/supabase';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 import {
   ActivityIndicator,
@@ -11,13 +12,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from 'react-native';
 
-import {
-  Download,
-  FileText,
-  Search,
-} from 'react-native-feather';
+import { Download, FileText, Search } from 'react-native-feather';
 
 import AppHeader from '../components/AppHeader';
 import { getDocumentos } from '../services/communityService';
@@ -28,25 +26,20 @@ import { globalStyles } from '../styles/globalStyles';
 import type { Documento } from '../types/models';
 
 export default function DocumentosScreen() {
-
   // buscar quem fez login
   const { user } = useAuth();
 
-  const [documentos, setDocumentos] = useState<
-    Documento[]
-  >([]);
-
-  const [selectedCategory, setSelectedCategory] =
-    useState('Todos');
-
-  const [searchQuery, setSearchQuery] =
-    useState('');
-
+  const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [error, setError] = useState<string | null>(
-    null,
-  );
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState('');
+  const [newDocCategory, setNewDocCategory] = useState('');
+  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,9 +56,7 @@ export default function DocumentosScreen() {
         }
       } catch {
         if (isMounted) {
-          setError(
-            'Não foi possível carregar os documentos.',
-          );
+          setError('Não foi possível carregar os documentos.');
         }
       } finally {
         if (isMounted) {
@@ -83,15 +74,12 @@ export default function DocumentosScreen() {
 
   const categories = [
     'Todos',
-    ...Array.from(
-      new Set(documentos.map(doc => doc.category)),
-    ),
+    ...Array.from(new Set(documentos.map(doc => doc.category))),
   ];
 
   const filteredDocs = documentos.filter(doc => {
     const matchesCat =
-      selectedCategory === 'Todos' ||
-      doc.category === selectedCategory;
+      selectedCategory === 'Todos' || doc.category === selectedCategory;
 
     const matchesSearch = doc.title
       .toLowerCase()
@@ -100,33 +88,126 @@ export default function DocumentosScreen() {
     return matchesCat && matchesSearch;
   });
 
-const handleOpenDocument = async (filePath?: string) => {
-  if (!filePath) {
-    Alert.alert(
-      'Erro',
-      'Este documento não tem um ficheiro físico associado no servidor.',
-    );
-    return;
-  }
-
-  try {
-    const supabase = getSupabaseClient();
-
-    const { data } = supabase.storage.from('documentos').getPublicUrl(filePath);
-
-    if (!data.publicUrl) {
-      throw new Error('Não foi possível gerar a URL pública.');
+  const handleOpenDocument = async (filePath?: string) => {
+    if (!filePath) {
+      Alert.alert(
+        'Erro',
+        'Este documento não tem um ficheiro físico associado no servidor.',
+      );
+      return;
     }
-    // O bloco catch apanha o erro se o telemóvel se telemovel for lento e nao tiver browser.
-    await Linking.openURL(data.publicUrl);
-  } catch (error) {
-    console.error('Erro ao abrir documento:', error);
-    Alert.alert(
-      'Erro',
-      'Não tens nenhuma aplicação instalada para abrir este ficheiro.',
-    );
-  }
-};
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data } = supabase.storage
+        .from('documentos')
+        .getPublicUrl(filePath);
+
+      if (!data.publicUrl) {
+        throw new Error('Não foi possível gerar a URL pública.');
+      }
+      // O bloco catch apanha o erro se o telemóvel se telemovel for lento e nao tiver browser.
+      await Linking.openURL(data.publicUrl);
+    } catch (error) {
+      console.error('Erro ao abrir documento:', error);
+      Alert.alert(
+        'Erro',
+        'Não tens nenhuma aplicação instalada para abrir este ficheiro.',
+      );
+    }
+  };
+
+  // --- INÍCIO DAS FUNÇÕES DE UPLOAD ---
+  // Abre a galeria
+  const handlePickImage = async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo' });
+    if (!result.didCancel && result.assets && result.assets.length > 0) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  // Faz o upload para o Supabase
+  const handleUploadSubmit = async () => {
+    if (!newDocTitle || !newDocCategory || !selectedImage) {
+      Alert.alert('Erro', 'Preenche todos os campos e escolhe uma imagem.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const supabase = getSupabaseClient();
+
+      // 1. Preparar o ficheiro
+      const timestamp = new Date().getTime();
+      const ext = selectedImage.fileName?.split('.').pop() || 'jpg';
+      const filePath = `uploads/doc_${timestamp}.${ext}`;
+
+      // Lemos o ficheiro fisicamente do telemóvel
+      const fileData = await fetch(selectedImage.uri).then(res =>
+        res.arrayBuffer(),
+      );
+
+      // 2. Upload para o Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('documentos')
+        .upload(filePath, fileData, {
+          contentType: selectedImage.type || 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 3. Gravar na Base de Dados relacional
+      const sizeMB = selectedImage.fileSize
+        ? (selectedImage.fileSize / (1024 * 1024)).toFixed(2) + ' MB'
+        : 'Desconhecido';
+
+      const { error: dbError } = await supabase.from('documentos').insert({
+        id: timestamp.toString(), // enviado o timestamp como texto
+        title: newDocTitle,
+        category: newDocCategory,
+        type: 'IMG',
+        date: new Date().toISOString().split('T')[0],
+        size: sizeMB,
+        file_path: filePath,
+        mime_type: selectedImage.type || 'image/jpeg',
+      });
+
+      if (dbError) throw dbError;
+
+      // criar o objeto no formato correto do modelo da App
+      const novoDocumento: Documento = {
+        id: timestamp.toString(),
+        title: newDocTitle,
+        category: newDocCategory,
+        type: 'IMG',
+        date: new Date().toISOString().split('T')[0],
+        size: sizeMB,
+        filePath: filePath,
+        mimeType: selectedImage.type || 'image/jpeg',
+      };
+
+      // injetar o novo doc no topo da lista
+      setDocumentos(prevDocs => [novoDocumento, ...prevDocs]);
+
+      Alert.alert('Sucesso', 'Documento adicionado!');
+
+      // Limpar o Modal
+      setModalVisible(false);
+      setNewDocTitle('');
+      setNewDocCategory('');
+      setSelectedImage(null);
+
+      // Opcional: Aqui podíamos chamar a função loadDocumentos() para atualizar a lista automaticamente
+    } catch (error: any) {
+      console.error('Erro no upload:', error);
+      Alert.alert('Erro', 'Falha ao guardar o documento: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  // --- FIM DAS FUNÇÕES DE UPLOAD ---
 
   return (
     <View style={globalStyles.safeArea}>
@@ -149,8 +230,6 @@ const handleOpenDocument = async (filePath?: string) => {
         </View>
 
         {/* --- INÍCIO DO BLOCO DE TESTE DE PERMISSÕES --- */}
-        {/* {//TODO: se alguem depois puder colocar isto no ficheiros do estilos para ficar organizado tks}} */}
-
         <View
           style={{
             marginVertical: 10,
@@ -171,7 +250,7 @@ const handleOpenDocument = async (filePath?: string) => {
                 marginTop: 10,
                 borderRadius: 8,
               }}
-              onPress={() => console.log('Abrir modal de upload')}
+              onPress={() => setModalVisible(true)} // <-- AQUI MUDEI PARA ABRIR O MODAL
             >
               <Text
                 style={{
@@ -250,7 +329,6 @@ const handleOpenDocument = async (filePath?: string) => {
 
                 <TouchableOpacity
                   style={globalStyles.downloadBtn}
-                  // TODO: Ligar ao ficheiro real
                   onPress={() => handleOpenDocument(item.filePath)}
                 >
                   <Download stroke="#FFF" width={20} height={20} />
@@ -260,6 +338,108 @@ const handleOpenDocument = async (filePath?: string) => {
           />
         )}
       </View>
+
+      {/* --- INÍCIO DO MODAL DE UPLOAD (Invisível até clicares no botão) --- */}
+      <Modal visible={isModalVisible} transparent={true} animationType="slide">
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            padding: 20,
+          }}
+        >
+          <View
+            style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}
+          >
+            <Text
+              style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}
+            >
+              Adicionar Novo Documento
+            </Text>
+
+            <TextInput
+              placeholder="Título (ex: Ata Condomínio)"
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginBottom: 10,
+                borderRadius: 5,
+                color: '#000',
+              }}
+              placeholderTextColor="#999"
+              value={newDocTitle}
+              onChangeText={setNewDocTitle}
+            />
+
+            <TextInput
+              placeholder="Categoria (ex: Finanças, Atas)"
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginBottom: 15,
+                borderRadius: 5,
+                color: '#000',
+              }}
+              placeholderTextColor="#999"
+              value={newDocCategory}
+              onChangeText={setNewDocCategory}
+            />
+
+            <TouchableOpacity
+              onPress={handlePickImage}
+              style={{
+                backgroundColor: '#e0e0e0',
+                padding: 10,
+                borderRadius: 5,
+                marginBottom: 15,
+              }}
+            >
+              <Text style={{ textAlign: 'center', color: '#000' }}>
+                {selectedImage
+                  ? `Imagem selecionada: ${selectedImage.fileName}`
+                  : '📷 Escolher Imagem do Telemóvel'}
+              </Text>
+            </TouchableOpacity>
+
+            {isUploading ? (
+              <ActivityIndicator size="large" color="#0052FF" />
+            ) : (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => setModalVisible(false)}
+                  style={{ padding: 10 }}
+                >
+                  <Text style={{ color: 'red', fontWeight: 'bold' }}>
+                    Cancelar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleUploadSubmit}
+                  style={{
+                    backgroundColor: '#0052FF',
+                    padding: 10,
+                    borderRadius: 5,
+                    paddingHorizontal: 20,
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                    Guardar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+      {/* --- FIM DO MODAL DE UPLOAD --- */}
     </View>
   );
 }

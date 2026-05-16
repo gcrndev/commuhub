@@ -181,6 +181,7 @@ set fcm_token = '<TOKEN_FCM_REAL>',
 where id = '<USER_ID>';
 
 insert into public.notifications (user_id, title, body, data)
+
 values (
   '<USER_ID>',
   'Titulo teste',
