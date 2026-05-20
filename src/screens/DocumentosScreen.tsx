@@ -4,6 +4,7 @@ import { Linking, Alert } from 'react-native';
 import { getSupabaseClient } from '../lib/supabase';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { setupPushNotifications } from '../services/notificationService';
+import { Picker } from '@react-native-picker/picker';
 
 import {
   ActivityIndicator,
@@ -15,6 +16,21 @@ import {
   View,
   Modal,
 } from 'react-native';
+
+const CATEGORIAS_OPCOES = [
+  'Atas de assembleia',
+  'Relatórios financeiros e balancetes',
+  'Regulamento interno e convenção',
+  'Contratos de fornecedores',
+  'Orçamentos',
+  'Notas fiscais e recibos',
+  'Comunicados e circulares',
+  'Laudos e vistorias',
+  'Alvarás e certificados (ex: Bombeiros)',
+  'Manuais do condomínio',
+  'Plantas e projetos',
+  'Apólices de seguro'
+];
 
 import { Download, FileText, Search } from 'react-native-feather';
 
@@ -380,21 +396,39 @@ async function loadDocumentos() {
               onChangeText={setNewDocTitle}
             />
 
-            <TextInput
-              placeholder="Categoria (ex: Finanças, Atas)"
+            <View
               style={{
                 borderWidth: 1,
                 borderColor: '#ccc',
-                padding: 10,
                 marginBottom: 15,
                 borderRadius: 5,
-                color: '#000',
+                backgroundColor: '#fafafa',
+                overflow: 'hidden',
               }}
-              placeholderTextColor="#999"
-              value={newDocCategory}
-              onChangeText={setNewDocCategory}
-            />
-
+            >
+              <Picker
+                selectedValue={newDocCategory}
+                onValueChange={(itemValue) => setNewDocCategory(itemValue)}
+                style={{ color: '#000', margin: -5 }}
+                dropdownIconColor="#000"
+                mode="dropdown"
+              >
+                <Picker.Item
+                  label="Selecione uma categoria..."
+                  value=""
+                  color="#999"
+                />
+            
+                {CATEGORIAS_OPCOES.map((cat, index) => (
+                  <Picker.Item
+                    key={index}
+                    label={cat}
+                    value={cat}
+                  />
+                ))}
+              </Picker>
+            </View>
+            
             <TouchableOpacity
               onPress={handlePickImage}
               style={{
