@@ -2,18 +2,14 @@ import React, { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  MapPin,
-} from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react-native';
 
 import AppHeader from '../components/AppHeader';
 
@@ -25,20 +21,19 @@ import { globalStyles } from '../styles/globalStyles';
 import type { Evento } from '../types/models';
 
 export default function CalendarioScreen() {
-  const [currentDate, setCurrentDate] =
-    useState(new Date(2026, 3, 11));
+  // <-- CORREÇÃO: Usar a data atual e não uma data fixa
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // <-- NOVO: Estado para guardar o dia clicado
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const [view, setView] = useState('month');
 
-  const [eventos, setEventos] = useState<Evento[]>(
-    [],
-  );
+  const [eventos, setEventos] = useState<Evento[]>([]);
 
   const [loading, setLoading] = useState(true);
 
-  const [error, setError] = useState<string | null>(
-    null,
-  );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,9 +50,7 @@ export default function CalendarioScreen() {
         }
       } catch {
         if (isMounted) {
-          setError(
-            'Não foi possível carregar os eventos.',
-          );
+          setError('Não foi possível carregar os eventos.');
         }
       } finally {
         if (isMounted) {
@@ -73,15 +66,7 @@ export default function CalendarioScreen() {
     };
   }, []);
 
-  const daysOfWeek = [
-    'Dom',
-    'Seg',
-    'Ter',
-    'Qua',
-    'Qui',
-    'Sex',
-    'Sáb',
-  ];
+  const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   const monthNames = [
     'Janeiro',
@@ -98,26 +83,16 @@ export default function CalendarioScreen() {
     'Dezembro',
   ];
 
-  const getDaysInMonth = (
-    date: Date | null,
-  ) => {
+  const getDaysInMonth = (date: Date | null) => {
     if (!date) return [];
 
     const year = date.getFullYear();
     const month = date.getMonth();
 
     const firstDay = new Date(year, month, 1);
-
-    const lastDay = new Date(
-      year,
-      month + 1,
-      0,
-    );
-
+    const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-
-    const startingDayOfWeek =
-      firstDay.getDay();
+    const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
 
@@ -132,43 +107,56 @@ export default function CalendarioScreen() {
     return days;
   };
 
-  const getEventsForDate = (
-    date: Date | null,
-  ) => {
+  const getEventsForDate = (date: Date | null) => {
     if (!date) return [];
 
-    const dateStr = date
-      .toISOString()
-      .split('T')[0];
+    const dateStr = date.toISOString().split('T')[0];
 
-    return eventos.filter(
-      event => event.date === dateStr,
-    );
+    return eventos.filter(event => event.date === dateStr);
   };
 
   const previousMonth = () => {
     setCurrentDate(
-      new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - 1,
-        1,
-      ),
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
 
   const nextMonth = () => {
     setCurrentDate(
-      new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        1,
-      ),
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
   const days = getDaysInMonth(currentDate);
 
-  const today = new Date(2026, 3, 11);
+  // usar a data atual do telemóvel e não dia 11 de Abril de 2026
+  const today = new Date();
+
+  // função que gere o clique nos dias
+  const handleDatePress = (date: Date | null) => {
+    if (!date) return;
+
+    const eventsOnDate = getEventsForDate(date);
+
+    // se não há eventos, avisa e limpa filtro
+    if (eventsOnDate.length === 0) {
+      Alert.alert('Sem eventos', 'Não há eventos agendados para esta data.');
+      setSelectedDate(null);
+      return;
+    }
+
+    // Se clicar no dia que já está selecionado, tira o filtro
+    if (selectedDate && date.getTime() === selectedDate.getTime()) {
+      setSelectedDate(null);
+    } else {
+      setSelectedDate(date);
+    }
+  };
+
+  // os eventos que vão aparecer na lista em baixo
+  const displayedEvents = selectedDate
+    ? getEventsForDate(selectedDate)
+    : eventos;
 
   return (
     <View style={globalStyles.safeArea}>
@@ -179,9 +167,7 @@ export default function CalendarioScreen() {
 
       <ScrollView
         style={globalStyles.mainContent}
-        contentContainerStyle={
-          globalStyles.calendarScrollContent
-        }
+        contentContainerStyle={globalStyles.calendarScrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={globalStyles.calendarCard}>
@@ -190,35 +176,22 @@ export default function CalendarioScreen() {
               onPress={previousMonth}
               style={globalStyles.calendarIconBtn}
             >
-              <ChevronLeft
-                size={20}
-                color={colors.textSecondary}
-              />
+              <ChevronLeft size={20} color={colors.textSecondary} />
             </TouchableOpacity>
 
-            <Text
-              style={globalStyles.calendarMonthTitle}
-            >
-              {monthNames[currentDate.getMonth()]}{' '}
-              {currentDate.getFullYear()}
+            <Text style={globalStyles.calendarMonthTitle}>
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </Text>
 
             <TouchableOpacity
               onPress={nextMonth}
               style={globalStyles.calendarIconBtn}
             >
-              <ChevronRight
-                size={20}
-                color={colors.textSecondary}
-              />
+              <ChevronRight size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <View
-            style={
-              globalStyles.calendarToggleContainer
-            }
-          >
+          <View style={globalStyles.calendarToggleContainer}>
             <TouchableOpacity
               onPress={() => setView('month')}
               style={[
@@ -264,46 +237,37 @@ export default function CalendarioScreen() {
 
           <View style={globalStyles.calendarGrid}>
             {daysOfWeek.map(day => (
-              <View
-                key={day}
-                style={
-                  globalStyles.calendarDayHeaderCell
-                }
-              >
-                <Text
-                  style={
-                    globalStyles.calendarDayHeaderText
-                  }
-                >
-                  {day}
-                </Text>
+              <View key={day} style={globalStyles.calendarDayHeaderCell}>
+                <Text style={globalStyles.calendarDayHeaderText}>{day}</Text>
               </View>
             ))}
 
             {days.map((day, index) => {
-              const hasEvents =
-                day &&
-                getEventsForDate(day).length > 0;
+              const hasEvents = day && getEventsForDate(day).length > 0;
 
               const isToday =
                 day &&
-                day.getDate() ===
-                  today.getDate() &&
-                day.getMonth() ===
-                  today.getMonth() &&
-                day.getFullYear() ===
-                  today.getFullYear();
+                day.getDate() === today.getDate() &&
+                day.getMonth() === today.getMonth() &&
+                day.getFullYear() === today.getFullYear();
+
+              // verificar se este dia é o que está selecionado
+              const isSelected =
+                selectedDate && day && day.getTime() === selectedDate.getTime();
 
               return (
-                <View
+                // trocado para TouchableOpacity para detetar cliques
+                <TouchableOpacity
                   key={index}
+                  onPress={() => handleDatePress(day)}
                   style={[
                     globalStyles.calendarDayCell,
-                    isToday &&
-                      globalStyles.calendarTodayCell,
-                    hasEvents &&
-                      !isToday &&
-                      globalStyles.calendarEventCell,
+                    isToday && globalStyles.calendarTodayCell,
+                    hasEvents && !isToday && globalStyles.calendarEventCell,
+                    isSelected && {
+                      borderColor: colors.primary,
+                      borderWidth: 2,
+                    }, // destaque ao clicar
                   ]}
                 >
                   {day && (
@@ -311,8 +275,7 @@ export default function CalendarioScreen() {
                       <Text
                         style={[
                           globalStyles.calendarDayText,
-                          isToday &&
-                            globalStyles.calendarTodayText,
+                          isToday && globalStyles.calendarTodayText,
                           hasEvents &&
                             !isToday &&
                             globalStyles.calendarEventText,
@@ -321,39 +284,23 @@ export default function CalendarioScreen() {
                         {day.getDate()}
                       </Text>
 
-                      {hasEvents &&
-                        !isToday && (
-                          <View
-                            style={
-                              globalStyles.calendarDotEvent
-                            }
-                          />
-                        )}
+                      {hasEvents && !isToday && (
+                        <View style={globalStyles.calendarDotEvent} />
+                      )}
 
-                      {hasEvents &&
-                        isToday && (
-                          <View
-                            style={
-                              globalStyles.calendarDotToday
-                            }
-                          />
-                        )}
+                      {hasEvents && isToday && (
+                        <View style={globalStyles.calendarDotToday} />
+                      )}
                     </>
                   )}
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <View
-          style={globalStyles.calendarEventsSection}
-        >
-          <Text
-            style={globalStyles.calendarEventsTitle}
-          >
-            Próximos Eventos
-          </Text>
+        <View style={globalStyles.calendarEventsSection}>
+          <Text style={globalStyles.calendarEventsTitle}>Próximos Eventos</Text>
 
           {loading ? (
             <ActivityIndicator
@@ -361,126 +308,59 @@ export default function CalendarioScreen() {
               style={globalStyles.loaderSpacing}
             />
           ) : error ? (
-            <Text
-              style={globalStyles.centeredEmptyText}
-            >
-              {error}
-            </Text>
-          ) : eventos.length === 0 ? (
-            <Text
-              style={globalStyles.centeredEmptyText}
-            >
-              Nenhum evento encontrado.
+            <Text style={globalStyles.centeredEmptyText}>{error}</Text>
+          ) : displayedEvents.length === 0 ? ( // usa a nova variável filtrada
+            <Text style={globalStyles.centeredEmptyText}>
+              {selectedDate
+                ? 'Não há eventos para a data selecionada.'
+                : 'Nenhum evento encontrado.'}
             </Text>
           ) : (
-            [...eventos]
+            // usa a nova variável filtrada
+            [...displayedEvents]
               .sort(
                 (a, b) =>
-                  new Date(a.date).getTime() -
-                  new Date(b.date).getTime(),
+                  new Date(a.date).getTime() - new Date(b.date).getTime(),
               )
               .map(event => {
-                const eventDate = new Date(
-                  event.date,
-                );
-
-                const isPast =
-                  eventDate < today;
+                const eventDate = new Date(event.date);
+                const isPast = eventDate < today;
 
                 return (
                   <View
                     key={event.id}
                     style={[
                       globalStyles.calendarEventCard,
-                      isPast &&
-                        globalStyles.calendarEventCardPast,
+                      isPast && globalStyles.calendarEventCardPast,
                     ]}
                   >
-                    <View
-                      style={
-                        globalStyles.calendarEventRow
-                      }
-                    >
-                      <View
-                        style={
-                          globalStyles.calendarDateBadge
-                        }
-                      >
-                        <Text
-                          style={
-                            globalStyles.calendarDateBadgeMonth
-                          }
-                        >
+                    <View style={globalStyles.calendarEventRow}>
+                      <View style={globalStyles.calendarDateBadge}>
+                        <Text style={globalStyles.calendarDateBadgeMonth}>
                           {eventDate
-                            .toLocaleDateString(
-                              'pt-PT',
-                              {
-                                month: 'short',
-                              },
-                            )
+                            .toLocaleDateString('pt-PT', { month: 'short' })
                             .toUpperCase()}
                         </Text>
-
-                        <Text
-                          style={
-                            globalStyles.calendarDateBadgeDay
-                          }
-                        >
+                        <Text style={globalStyles.calendarDateBadgeDay}>
                           {eventDate.getDate()}
                         </Text>
                       </View>
 
-                      <View
-                        style={
-                          globalStyles.calendarEventInfo
-                        }
-                      >
-                        <Text
-                          style={
-                            globalStyles.calendarEventTitle
-                          }
-                        >
+                      <View style={globalStyles.calendarEventInfo}>
+                        <Text style={globalStyles.calendarEventTitle}>
                           {event.title}
                         </Text>
 
-                        <View
-                          style={
-                            globalStyles.calendarEventDetailsRow
-                          }
-                        >
-                          <Clock
-                            size={14}
-                            color={
-                              colors.textSecondary
-                            }
-                          />
-
-                          <Text
-                            style={
-                              globalStyles.calendarEventDetailsText
-                            }
-                          >
+                        <View style={globalStyles.calendarEventDetailsRow}>
+                          <Clock size={14} color={colors.textSecondary} />
+                          <Text style={globalStyles.calendarEventDetailsText}>
                             {event.time}
                           </Text>
                         </View>
 
-                        <View
-                          style={
-                            globalStyles.calendarEventDetailsRow
-                          }
-                        >
-                          <MapPin
-                            size={14}
-                            color={
-                              colors.textSecondary
-                            }
-                          />
-
-                          <Text
-                            style={
-                              globalStyles.calendarEventDetailsText
-                            }
-                          >
+                        <View style={globalStyles.calendarEventDetailsRow}>
+                          <MapPin size={14} color={colors.textSecondary} />
+                          <Text style={globalStyles.calendarEventDetailsText}>
                             {event.location}
                           </Text>
                         </View>
@@ -488,16 +368,8 @@ export default function CalendarioScreen() {
                     </View>
 
                     {isPast && (
-                      <View
-                        style={
-                          globalStyles.calendarPastDivider
-                        }
-                      >
-                        <Text
-                          style={
-                            globalStyles.calendarPastText
-                          }
-                        >
+                      <View style={globalStyles.calendarPastDivider}>
+                        <Text style={globalStyles.calendarPastText}>
                           Evento passado
                         </Text>
                       </View>
