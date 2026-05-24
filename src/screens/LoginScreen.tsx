@@ -25,46 +25,54 @@ export default function LoginScreen({ navigation }: any) {
   const [errorMessage, setErrorMessage] = useState('');
 
   // 2. A função real de Login
-  const handleLogin = async () => {
-    // Validação básica
-    if (!username || !password) {
-      setErrorMessage('Preenche o nome e a palavra-passe.');
-      return;
+const handleLogin = async () => {
+  if (!username || !password) {
+    setErrorMessage('Preenche o nome e a palavra-passe.');
+    return;
+  }
+
+  setIsLoading(true);
+  setErrorMessage('');
+
+  // Criar um mecanismo para cancelar se demorar mais de 8 segundos
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const supabase = getSupabaseClient();
+    
+    // Chamada à RPC com o sinal de cancelamento por timeout
+    const { data, error } = await supabase.rpc('login_user', {
+      input_username: username,
+      input_password: password,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (error) throw error;
+
+    const user = data?.[0];
+
+    if (user) {
+      login(user);
+      navigation.replace('MainTabs');
+    } else {
+      setErrorMessage('Credenciais inválidas. Tenta novamente.');
     }
-
-    setIsLoading(true);
-    setErrorMessage('');
-
-    try {
-      const supabase = getSupabaseClient();
-
-      // 3. Chamada ao backend
-      const { data, error } = await supabase.rpc('login_user', {
-        input_username: username,
-        input_password: password,
-      });
-
-      if (error) throw error;
-
-      const user = data?.[0];
-
-      if (user) {
-        // Login com sucesso
-        // TODO: Guardar os dados do utilizador globalmente (Context/AsyncStorage) || feito database - function - login_user
-        login(user);
-        navigation.replace('MainTabs');
-      } else {
-        // Retornou vazio = credenciais erradas
-        setErrorMessage('Credenciais inválidas. Tenta novamente.');
-      }
-    } catch (error: any) {
-      console.error('Erro no login:', error);
-      setErrorMessage('Erro de comunicação com o servidor.');
-      setErrorMessage(error.message || 'Erro desconhecido. Vê a consola.');
-    } finally {
-      setIsLoading(false);
+  } catch (error: any) {
+    console.error('Erro detalhado no login:', error);
+    
+    // Se o erro foi por causa do tempo limite (Timeout)
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      setErrorMessage('O servidor demorou muito a responder. Verifica a tua internet.');
+    } else {
+      setErrorMessage(error.message || 'Erro de comunicação com o servidor.');
     }
-  };
+  } finally {
+    // ESTA LINHA É CRUCIAL: Garante que o loading para, não importa o que aconteça!
+    setIsLoading(false); 
+  }
+};
 
   return (
     <SafeAreaView style={globalStyles.safeArea}>

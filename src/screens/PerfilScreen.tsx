@@ -1,4 +1,3 @@
-// PerfilScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -20,24 +19,18 @@ import {
 import AppHeader from "../components/AppHeader";
 import { globalStyles } from "../styles/globalStyles";
 import { colors } from "../styles/colors";
+import { useAuth } from "../context/AuthContext";
 
-const mockUser = {
-  name: "João Silva",
-  email: "joao.silva@exemplo.com",
-  role: "Membro Premium",
-  memberId: "12345",
-  memberSince: "2023-01-15",
-  notifications: {
+export default function PerfilScreen({ navigation }: any) {
+  const { user, logout } = useAuth(); 
+
+  const [notifications, setNotifications] = useState({
     email: true,
     push: true,
     votacoes: true,
     eventos: false,
     documentos: true,
-  },
-};
-
-export default function PerfilScreen() {
-  const [notifications, setNotifications] = useState(mockUser.notifications);
+  });
 
   const toggleNotification = (key: keyof typeof notifications) => {
     setNotifications((prev) => ({
@@ -46,11 +39,22 @@ export default function PerfilScreen() {
     }));
   };
 
+  const handleLogout = async () => {
+    if (logout) {
+      await logout();
+    }
+    navigation.replace("Login"); 
+  };
+
+  const userName = user?.username || "Utilizador";
+  const userRole = user?.type || "condomino";
+  const memberSince = (user as any)?.date_added || new Date().toISOString();
+
   return (
     <View style={globalStyles.safeArea}>
       <AppHeader 
         title="Perfil" 
-        subtitle="Gerir conta e preferências" 
+        subtitle="Gerir conta e preferences" 
       />
 
       <ScrollView
@@ -58,6 +62,7 @@ export default function PerfilScreen() {
         contentContainerStyle={globalStyles.calendarScrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Card Principal de Perfil (Sem IDs à vista) */}
         <View style={globalStyles.calendarCard}>
           <View style={globalStyles.profileInfoRow}>
             <View style={globalStyles.avatarCircle}>
@@ -65,28 +70,26 @@ export default function PerfilScreen() {
             </View>
 
             <View style={globalStyles.profileTextInfo}>
-              <Text style={globalStyles.userName}>{mockUser.name}</Text>
-              <Text style={globalStyles.userEmail}>{mockUser.email}</Text>
+              <Text style={globalStyles.userName}>{userName}</Text>
               <View style={globalStyles.badge}>
-                <Text style={globalStyles.badgeText}>{mockUser.role}</Text>
+                <Text style={globalStyles.badgeText}>
+                  {userRole.toUpperCase()}
+                </Text>
               </View>
             </View>
           </View>
 
           <View style={globalStyles.statsRow}>
             <View style={globalStyles.statItem}>
-              <Text style={globalStyles.statLabel}>Número de Membro</Text>
-              <Text style={globalStyles.statValue}>{mockUser.memberId}</Text>
-            </View>
-            <View style={[globalStyles.statItem, globalStyles.statBorder]}>
               <Text style={globalStyles.statLabel}>Membro desde</Text>
               <Text style={globalStyles.statValue}>
-                {new Date(mockUser.memberSince).toLocaleDateString("pt-PT")}
+                {new Date(memberSince).toLocaleDateString("pt-PT")}
               </Text>
             </View>
           </View>
         </View>
 
+        {/* Card de Notificações */}
         <View style={globalStyles.calendarCard}>
           <View style={globalStyles.calendarNavHeader}>
             <Bell size={20} color={colors.textSecondary} />
@@ -141,6 +144,7 @@ export default function PerfilScreen() {
           </View>
         </View>
 
+        {/* Links de Segurança */}
         <View style={globalStyles.calendarCard}>
           <TouchableOpacity style={[globalStyles.menuItem, globalStyles.borderBottom]}>
             <View style={globalStyles.menuItemLeft}>
@@ -153,13 +157,15 @@ export default function PerfilScreen() {
           <TouchableOpacity style={globalStyles.menuItem}>
             <View style={globalStyles.menuItemLeft}>
               <Mail size={20} color={colors.textSecondary} />
-              <Text style={globalStyles.menuItemText}>Alterar Email</Text>
+              <Text style={globalStyles.menuItemText}>Alterar Palavra-passe</Text>
             </View>
             <ChevronRight size={20} color="#9ca3af" />
           </TouchableOpacity>
         </View>
 
+        {/* Botão de Terminar Sessão */}
         <TouchableOpacity 
+          onPress={handleLogout}
           style={[globalStyles.calendarCard, { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10 }]}
         >
           <LogOut size={20} color="#dc2626" />
