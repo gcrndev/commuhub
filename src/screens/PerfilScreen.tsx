@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 
 import {
@@ -21,8 +22,15 @@ import { globalStyles } from "../styles/globalStyles";
 import { colors } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
 
+// 1. O teu novo import aqui
+import { getSupabaseClient } from '../lib/supabase';
+
+// 2. Inicializa o cliente para ser usado no ecrã
+const supabase = getSupabaseClient();
+
 export default function PerfilScreen({ navigation }: any) {
   const { user, logout } = useAuth(); 
+  const [loading, setLoading] = useState(true);
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -32,11 +40,104 @@ export default function PerfilScreen({ navigation }: any) {
     documentos: true,
   });
 
-  const toggleNotification = (key: keyof typeof notifications) => {
+  
+  useEffect(() => {
+    async function loadPreferences() {
+      if (!user?.id) return;
+
+      try {
+        //  Tenta ir buscar o perfil do utilizador
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("push_enabled, notify_votacoes, notify_eventos, notify_documentos")
+          .eq("id", user.id); 
+
+        if (error) throw error;
+
+        //  Se a linha existir, atualiza o ecrã com os dados reais
+        if (data && data.length > 0) {
+          const profile = data[0];
+          setNotifications((prev) => ({
+            ...prev,
+            push: profile.push_enabled ?? true,
+            votacoes: profile.notify_votacoes ?? true,
+            eventos: profile.notify_eventos ?? true,
+            documentos: profile.notify_documentos ?? true,
+          }));
+        } else {
+          
+          console.log("Perfil não encontrado. A criar um perfil padrão para o ID:", user.id);
+          
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert([
+              { 
+                id: user.id, 
+                push_enabled: true, 
+                notify_votacoes: true, 
+                notify_eventos: true, 
+                notify_documentos: true 
+              }
+            ]);
+
+          if (insertError) {
+            console.error("Erro ao criar perfil em falta:", insertError);
+          } else {
+            // td ativo por defeito
+            setNotifications({
+              email: true,
+              push: true,
+              votacoes: true,
+              eventos: true,
+              documentos: true,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar preferências:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPreferences();
+  }, [user?.id]);
+
+  
+  const toggleNotification = async (key: keyof typeof notifications) => {
+    const dbColumns: Record<string, string> = {
+      push: "push_enabled",
+      votacoes: "notify_votacoes",
+      eventos: "notify_eventos",
+      documentos: "notify_documentos",
+    };
+
+    const newValue = !notifications[key];
+
+    
     setNotifications((prev) => ({
       ...prev,
-      [key]: !prev[key],
+      [key]: newValue,
     }));
+
+    
+    if (key in dbColumns && user?.id) {
+      const columnName = dbColumns[key];
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ [columnName]: newValue })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error(`Erro ao atualizar ${columnName}:`, error);
+        
+        setNotifications((prev) => ({
+          ...prev,
+          [key]: !newValue,
+        }));
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -50,11 +151,19 @@ export default function PerfilScreen({ navigation }: any) {
   const userRole = user?.type || "condomino";
   const memberSince = (user as any)?.date_added || new Date().toISOString();
 
+  if (loading) {
+    return (
+      <View style={[globalStyles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary || "#2563eb"} />
+      </View>
+    );
+  }
+
   return (
     <View style={globalStyles.safeArea}>
       <AppHeader 
         title="Perfil" 
-        subtitle="Gerir conta e preferences" 
+        subtitle="Gerir conta e preferências" 
       />
 
       <ScrollView
@@ -62,7 +171,7 @@ export default function PerfilScreen({ navigation }: any) {
         contentContainerStyle={globalStyles.calendarScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Card Principal de Perfil (Sem IDs à vista) */}
+        {/* Card Principal de Perfil */}
         <View style={globalStyles.calendarCard}>
           <View style={globalStyles.profileInfoRow}>
             <View style={globalStyles.avatarCircle}>
