@@ -140,7 +140,7 @@ export default function IndexScreen() {
                   {!v.userVoted && (
                     <TouchableOpacity
                       style={globalStyles.primaryButton}
-                      onPress={() => navigation.navigate('Votacao' as never)} // ADDED bot votar
+                      onPress={() => navigation.navigate('Votacoes' as never)} // ADDED bot votar
                     >
                       <Text
                         style={globalStyles.primaryButtonText}

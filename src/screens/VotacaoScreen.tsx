@@ -8,16 +8,16 @@ import {
   View,
   Modal,
   TextInput,
-  Alert, // <-- ADICIONA ESTE AQUI
+  Alert,
 } from 'react-native';
 
-import { getSupabaseClient } from '../lib/supabase'; // <-- ADICIONA O IMPORT DO SUPABASE
+import { getSupabaseClient } from '../lib/supabase';
 
 import {
   CheckCircle,
   Clock,
   XCircle,
-  Edit2, // <-- ADICIONADO PARA O ÍCONE DE EDITAR
+  Edit2,
 } from 'react-native-feather';
 
 import Svg, { Circle, G } from 'react-native-svg';
@@ -26,13 +26,13 @@ import AppHeader from '../components/AppHeader';
 import { getVotacoes } from '../services/communityService';
 import { colors } from '../styles/colors';
 import { globalStyles } from '../styles/globalStyles';
-import { useAuth } from '../context/AuthContext'; // <-- ADICIONADO O CONTEXTO
+import { useAuth } from '../context/AuthContext';
 
 import type { Votacao } from '../types/models';
 
 export default function VotacaoScreen() {
-  const { user } = useAuth(); // <-- BUSCAMOS O UTILIZADOR LOGADO
-  const isAdmin = user?.type === 'admin'; // <-- VERIFICAÇÃO DE ADMIN
+  const { user } = useAuth();
+  const isAdmin = user?.type === 'admin';
 
   const [votacoes, setVotacoes] = useState<Votacao[]>([]);
   const [filter, setFilter] = useState('active');
@@ -49,6 +49,8 @@ export default function VotacaoScreen() {
     description: '',
     deadline: '',
   });
+
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -81,15 +83,60 @@ export default function VotacaoScreen() {
     };
   }, []);
 
+  // --- FUNÇÃO PARA COMPUTAR O VOTO NO SUPABASE E NA UI ---
+  const handleVote = async (votacaoId: string, opcao: 'sim' | 'nao') => {
+    try {
+      const supabase = getSupabaseClient();
+      const colunaSupabase = opcao === 'sim' ? 'votes_sim' : 'votes_nao';
+
+      // Localiza a votação correta na memória
+      const votacaoAtual = votacoes.find(v => v.id === votacaoId);
+      if (!votacaoAtual) return;
+
+      // Soma +1 ao valor que já existe localmente
+      const novoValorVoto = (votacaoAtual.votes[opcao] || 0) + 1;
+
+      // Atualiza o Supabase
+      const { error } = await supabase
+        .from('votacoes')
+        .update({ [colunaSupabase]: novoValorVoto })
+        .eq('id', votacaoId);
+
+      if (error) throw error;
+
+      // Atualiza a interface em tempo real
+      setVotacoes(prevVotacoes =>
+        prevVotacoes.map(v => {
+          if (v.id === votacaoId) {
+            return {
+              ...v,
+              userVoted: true,
+              votes: {
+                ...v.votes,
+                [opcao]: novoValorVoto
+              }
+            };
+          }
+          return v;
+        })
+      );
+
+      Alert.alert('Sucesso', 'O teu voto foi contabilizado!');
+    } catch (err: any) {
+      console.error('Erro ao votar:', err);
+      Alert.alert('Erro', 'Não foi possível registar o voto: ' + err.message);
+    }
+  };
+
   // --- FUNÇÕES DE ADMIN ---
   const handleOpenAdd = () => {
-    setEditingVotacao(null); // Limpa para garantir que é uma criação
+    setEditingVotacao(null);
     setFormData({ title: '', description: '', deadline: '' });
     setModalVisible(true);
   };
 
   const handleOpenEdit = (votacao: Votacao) => {
-    setEditingVotacao(votacao); // Define qual estamos a editar
+    setEditingVotacao(votacao);
     setFormData({
       title: votacao.title,
       description: votacao.description,
@@ -98,40 +145,39 @@ export default function VotacaoScreen() {
     setModalVisible(true);
   };
 
-const [isSaving, setIsSaving] = useState(false); // Estado para o loading do botão de salvar
+  const handleSaveVotacao = async () => {
+    if (!formData.title || !formData.description || !formData.deadline) {
+      Alert.alert('Atenção', 'Preencha todos os campos antes de guardar.');
+      return;
+    }  
+    setIsSaving(true);
+    try {
+      const supabase = getSupabaseClient();  
+      if (editingVotacao) {
+        // ---- MODO EDIÇÃO ----
+        const { error } = await supabase
+          .from('votacoes')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            deadline: formData.deadline,
+          })
+          .eq('id', editingVotacao.id);  
 
-const handleSaveVotacao = async () => {
-  // 1. Validação simples
-  if (!formData.title || !formData.description || !formData.deadline) {
-    Alert.alert('Atenção', 'Preencha todos os campos antes de guardar.');
-    return;
-  }  
-  setIsSaving(true);
-  try {
-    const supabase = getSupabaseClient();  
-    if (editingVotacao) {
-      // ---- MODO EDIÇÃO ----
-      const { error } = await supabase
-        .from('votacoes')
-        .update({
-          title: formData.title,
-          description: formData.description,
-          deadline: formData.deadline,
-        })
-        .eq('id', editingVotacao.id);  
-      if (error) throw error;  
-      // Atualizar o estado local para aparecer logo no ecrã sem ter que recarregar a app
-      setVotacoes(prevVotacoes =>
-        prevVotacoes.map(v =>
-          v.id === editingVotacao.id
-            ? { ...v, title: formData.title, description: formData.description, deadline:  formData.deadline }
-            : v
-        )
-      ); 
-      Alert.alert('Sucesso', 'Votação atualizada!'); 
-    } else {
-// ---- MODO CRIAÇÃO ----
-        const newVotacaoId = new Date().getTime().toString();
+        if (error) throw error;  
+
+        setVotacoes(prevVotacoes =>
+          prevVotacoes.map(v =>
+            v.id === editingVotacao.id
+              ? { ...v, title: formData.title, description: formData.description, deadline: formData.deadline }
+              : v
+          )
+        ); 
+
+        Alert.alert('Sucesso', 'Votação atualizada!'); 
+      } else {
+        // ---- MODO CRIAÇÃO ----
+     const newVotacaoId = new Date().getTime().toString();
 
         const { data, error } = await supabase
           .from('votacoes')
@@ -147,13 +193,12 @@ const handleSaveVotacao = async () => {
             votes_abstencao: 0,
             total_voters: 0
           }])
-          .select(); 
+          .select();
 
         if (error) throw error;
 
-        // Criar o objeto para injetar na lista da tela (este mantém o formato do modelo Votacao)
         const novaVotacao: Votacao = {
-          id: data?.[0]?.id || newVotacaoId,
+          id: data?.[0]?.id || new Date().getTime().toString(),
           title: formData.title,
           description: formData.description,
           deadline: formData.deadline,
@@ -163,20 +208,18 @@ const handleSaveVotacao = async () => {
           totalVoters: 0
         };
 
-        // Injetar a nova votação no topo da lista
         setVotacoes([novaVotacao, ...votacoes]);
-        
         Alert.alert('Sucesso', 'Nova votação criada!');
-    }  
-    setModalVisible(false); // Fecha o modal
-  } catch (error: any) {
-    console.error('Erro ao guardar votação:', error);
-    Alert.alert('Erro', 'Falha ao guardar: ' + error.message);
-  } finally {
-    setIsSaving(false);
-  }
-};
-  // ------------------------
+      }  
+
+      setModalVisible(false);
+    } catch (err: any) {
+      console.error('Erro ao guardar votação:', err);
+      Alert.alert('Erro', 'Falha ao guardar: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const filteredVotacoes = votacoes.filter(
     v => filter === 'all' || v.status === filter,
@@ -214,7 +257,6 @@ const handleSaveVotacao = async () => {
           </ScrollView>
         </View>
 
-        {/* --- BOTÃO GLOBAL SÓ PARA ADMINS --- */}
         {isAdmin && (
           <TouchableOpacity
             style={{
@@ -248,6 +290,7 @@ const handleSaveVotacao = async () => {
             renderItem={({ item }) => {
               const total = item.votes.sim + item.votes.nao + item.votes.abstencao;
               const simPerc = total > 0 ? ((item.votes.sim / total) * 100).toFixed(0) : '0';
+
               const circumference = 251.2;
               const greenStroke = total > 0 ? (item.votes.sim / total) * circumference : 0;
               const redStroke = total > 0 ? ((item.votes.sim + item.votes.nao) / total) * circumference : 0;
@@ -256,14 +299,11 @@ const handleSaveVotacao = async () => {
                 <View style={[globalStyles.docCard, globalStyles.voteCard]}>
                   <View style={globalStyles.voteHeader}>
                     <View style={globalStyles.flexOne}>
-                      
-                      {/* TÍTULO E BOTÃO DE EDITAR */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 10 }}>
                         <Text style={[globalStyles.voteCardTitle, { flex: 1 }]}>
                           {item.title}
                         </Text>
                         
-                        {/* BOTÃO EDITAR SÓ PARA ADMINS */}
                         {isAdmin && (
                           <TouchableOpacity 
                             onPress={() => handleOpenEdit(item)}
@@ -308,6 +348,7 @@ const handleSaveVotacao = async () => {
                       <Text style={globalStyles.voteProgressLabel}>Aprovação</Text>
                       <Text style={globalStyles.voteProgressValue}>{simPerc}%</Text>
                     </View>
+
                     <View style={globalStyles.progressBarBackground}>
                       <View
                         style={[
@@ -320,11 +361,18 @@ const handleSaveVotacao = async () => {
 
                   {!item.userVoted && (
                     <View style={globalStyles.voteActionsRow}>
-                      <TouchableOpacity style={globalStyles.voteApproveButton}>
+                      <TouchableOpacity 
+                        style={globalStyles.voteApproveButton}
+                        onPress={() => handleVote(item.id, 'sim')}
+                      >
                         <CheckCircle stroke="#FFF" width={16} height={16} />
                         <Text style={globalStyles.voteActionText}>A Favor</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={globalStyles.voteRejectButton}>
+                      
+                      <TouchableOpacity 
+                        style={globalStyles.voteRejectButton}
+                        onPress={() => handleVote(item.id, 'nao')}
+                      >
                         <XCircle stroke="#FFF" width={16} height={16} />
                         <Text style={globalStyles.voteActionText}>Contra</Text>
                       </TouchableOpacity>
@@ -343,21 +391,49 @@ const handleSaveVotacao = async () => {
                   {expandedId === item.id && (
                     <View style={globalStyles.voteExpandedSection}>
                       <Text style={globalStyles.voteExpandedTitle}>Distribuição de Votos</Text>
+
                       <View style={globalStyles.voteChartWrapper}>
                         <View style={globalStyles.voteChartContainer}>
                           <Svg width="140" height="140" viewBox="0 0 100 100">
                             <G rotation="-90" origin="50, 50">
-                              <Circle cx="50" cy="50" r="40" stroke="#9ca3af" strokeWidth="10" fill="none" />
-                              <Circle cx="50" cy="50" r="40" stroke="#ef4444" strokeWidth="10" fill="none" strokeDasharray={`${redStroke} ${circumference}`} />
-                              <Circle cx="50" cy="50" r="40" stroke="#2ecc71" strokeWidth="10" fill="none" strokeDasharray={`${greenStroke} ${circumference}`} />
+                              <Circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                stroke="#9ca3af"
+                                strokeWidth="10"
+                                fill="none"
+                              />
+
+                              <Circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                stroke="#ef4444"
+                                strokeWidth="10"
+                                fill="none"
+                                strokeDasharray={`${redStroke} ${circumference}`}
+                              />
+
+                              <Circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                stroke="#2ecc71"
+                                strokeWidth="10"
+                                fill="none"
+                                strokeDasharray={`${greenStroke} ${circumference}`}
+                              />
                             </G>
                           </Svg>
+
                           <View style={globalStyles.voteChartCenter}>
                             <Text style={globalStyles.voteChartTotal}>{total}</Text>
                             <Text style={globalStyles.voteChartLabel}>Votos</Text>
                           </View>
                         </View>
                       </View>
+
                       <View style={globalStyles.voteStatsRow}>
                         <StatItem label="A Favor" value={item.votes.sim} color="#2ecc71" />
                         <StatItem label="Contra" value={item.votes.nao} color="#e74c3c" />
@@ -372,18 +448,45 @@ const handleSaveVotacao = async () => {
         )}
       </View>
 
-      {/* --- INÍCIO DO MODAL ADMIN (CRIAR E EDITAR) --- */}
+      {/* --- MODAL ADMIN (CRIAR E EDITAR) --- */}
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 }}>
-          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}>
-            
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            padding: 20
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: 'white',
+              padding: 20,
+              borderRadius: 10
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginBottom: 15,
+                textAlign: 'center'
+              }}
+            >
               {editingVotacao ? 'Editar Votação' : 'Criar Nova Votação'}
             </Text>
 
             <TextInput
               placeholder="Título (ex: Pintura do Prédio)"
-              style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, borderRadius: 5, color: '#000', backgroundColor: '#fafafa' }}
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginBottom: 10,
+                borderRadius: 5,
+                color: '#000',
+                backgroundColor: '#fafafa'
+              }}
               placeholderTextColor="#999"
               value={formData.title}
               onChangeText={(text) => setFormData({ ...formData, title: text })}
@@ -393,7 +496,16 @@ const handleSaveVotacao = async () => {
               placeholder="Descrição completa..."
               multiline
               numberOfLines={3}
-              style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, borderRadius: 5, color: '#000', backgroundColor: '#fafafa', textAlignVertical: 'top' }}
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginBottom: 10,
+                borderRadius: 5,
+                color: '#000',
+                backgroundColor: '#fafafa',
+                textAlignVertical: 'top'
+              }}
               placeholderTextColor="#999"
               value={formData.description}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
@@ -401,47 +513,64 @@ const handleSaveVotacao = async () => {
 
             <TextInput
               placeholder="Prazo (ex: 30 de Nov)"
-              style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 15, borderRadius: 5, color: '#000', backgroundColor: '#fafafa' }}
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginBottom: 15,
+                borderRadius: 5,
+                color: '#000',
+                backgroundColor: '#fafafa'
+              }}
               placeholderTextColor="#999"
               value={formData.deadline}
               onChangeText={(text) => setFormData({ ...formData, deadline: text })}
             />
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 12 }}>
-                <Text style={{ color: 'red', fontWeight: 'bold' }}>Cancelar</Text>
-              </TouchableOpacity>
-              
-            <TouchableOpacity
-              onPress={handleSaveVotacao}
-              disabled={isSaving}
-              style={{ 
-                backgroundColor: isSaving ? '#999' : '#0052FF', 
-                padding: 12, 
-                borderRadius: 8, 
-                paddingHorizontal: 25,
-                minWidth: 100,
-                alignItems: 'center'
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginTop: 10
               }}
             >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Salvar</Text>
-              )}
-            </TouchableOpacity>
-            </View>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={{ padding: 12 }}
+              >
+                <Text style={{ color: 'red', fontWeight: 'bold' }}>
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
 
+              <TouchableOpacity
+                onPress={handleSaveVotacao}
+                disabled={isSaving}
+                style={{
+                  backgroundColor: isSaving ? '#999' : '#0052FF',
+                  padding: 12,
+                  borderRadius: 8,
+                  paddingHorizontal: 25,
+                  minWidth: 100,
+                  alignItems: 'center'
+                }}
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                    Salvar
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
-      {/* --- FIM DO MODAL ADMIN --- */}
-
     </View>
   );
 }
 
-// --- Componente auxiliar lá de baixo ---
 type StatItemProps = {
   label: string;
   value: number;
@@ -450,7 +579,12 @@ type StatItemProps = {
 
 const StatItem = ({ label, value, color }: StatItemProps) => (
   <View style={globalStyles.centerItems}>
-    <Text style={[globalStyles.voteStatValue, { color }]}>{value}</Text>
-    <Text style={globalStyles.voteStatLabel}>{label}</Text>
+    <Text style={[globalStyles.voteStatValue, { color }]}>
+      {value}
+    </Text>
+
+    <Text style={globalStyles.voteStatLabel}>
+      {label}
+    </Text>
   </View>
 );
