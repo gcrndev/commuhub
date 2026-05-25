@@ -21,6 +21,7 @@ import AppHeader from "../components/AppHeader";
 import { globalStyles } from "../styles/globalStyles";
 import { colors } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
+import { setupPushNotifications } from '../services/notificationService';
 
 // 1. O teu novo import aqui
 import { getSupabaseClient } from '../lib/supabase';
@@ -43,7 +44,10 @@ export default function PerfilScreen({ navigation }: any) {
   
   useEffect(() => {
     async function loadPreferences() {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
         //  Tenta ir buscar o perfil do utilizador
@@ -64,6 +68,10 @@ export default function PerfilScreen({ navigation }: any) {
             eventos: profile.notify_eventos ?? true,
             documentos: profile.notify_documentos ?? true,
           }));
+
+          if (profile.push_enabled ?? true) {
+            setupPushNotifications(user.id);
+          }
         } else {
           
           console.log("Perfil não encontrado. A criar um perfil padrão para o ID:", user.id);
@@ -91,6 +99,7 @@ export default function PerfilScreen({ navigation }: any) {
               eventos: true,
               documentos: true,
             });
+            setupPushNotifications(user.id);
           }
         }
       } catch (error) {
@@ -136,6 +145,11 @@ export default function PerfilScreen({ navigation }: any) {
           ...prev,
           [key]: !newValue,
         }));
+        return;
+      }
+
+      if (key === "push" && newValue) {
+        setupPushNotifications(user.id);
       }
     }
   };

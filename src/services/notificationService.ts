@@ -54,6 +54,14 @@ export async function setupPushNotifications(userId: string) {
 
     // 4. Lógica extra para mostrar notificações enquanto a App está ABERTA (Foreground)
     messaging().onMessage(async remoteMessage => {
+      const title =
+        remoteMessage.data?.title ||
+        remoteMessage.notification?.title ||
+        'Nova mensagem';
+      const body =
+        remoteMessage.data?.body ||
+        remoteMessage.notification?.body ||
+        '';
       console.log('Notificação recebida com a app aberta:', remoteMessage);
 
       // Criar um canal de notificação (Exigência do Android)
@@ -64,8 +72,8 @@ export async function setupPushNotifications(userId: string) {
 
       // Mostrar o balão da notificação no ecrã usando Notifee
       await notifee.displayNotification({
-        title: remoteMessage.notification?.title || 'Nova mensagem',
-        body: remoteMessage.notification?.body || '',
+        title: String(title),
+        body: String(body),
         android: {
           channelId,
           smallIcon: 'ic_launcher', // Ícone padrão do Android

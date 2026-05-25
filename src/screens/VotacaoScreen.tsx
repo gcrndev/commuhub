@@ -131,9 +131,12 @@ const handleSaveVotacao = async () => {
       Alert.alert('Sucesso', 'Votação atualizada!'); 
     } else {
 // ---- MODO CRIAÇÃO ----
+        const newVotacaoId = new Date().getTime().toString();
+
         const { data, error } = await supabase
           .from('votacoes')
           .insert([{
+            id: newVotacaoId,
             title: formData.title,
             description: formData.description,
             deadline: formData.deadline,
@@ -150,7 +153,7 @@ const handleSaveVotacao = async () => {
 
         // Criar o objeto para injetar na lista da tela (este mantém o formato do modelo Votacao)
         const novaVotacao: Votacao = {
-          id: data?.[0]?.id || new Date().getTime().toString(),
+          id: data?.[0]?.id || newVotacaoId,
           title: formData.title,
           description: formData.description,
           deadline: formData.deadline,

@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { Linking, Alert } from 'react-native';
 import { getSupabaseClient } from '../lib/supabase';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { setupPushNotifications } from '../services/notificationService';
 import { Picker } from '@react-native-picker/picker';
 
 import {
@@ -70,12 +69,6 @@ async function loadDocumentos() {
 
     if (isMounted) {
       setDocumentos(data);
-
-      // --- INJECTAR ISTO AQUI ---
-      if (user?.id) {
-        setupPushNotifications(user.id);
-      }
-      // --------------------------
     }
   } catch {
     if (isMounted) {
