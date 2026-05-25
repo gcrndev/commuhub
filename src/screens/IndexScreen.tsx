@@ -7,6 +7,8 @@ import {
   View,
 } from 'react-native';
 
+import { useNavigation } from '@react-navigation/native'; /////// Botão votar
+
 import AppHeader from '../components/AppHeader';
 import { getEventos, getVotacoes } from '../services/communityService';
 import { colors } from '../styles/colors';
@@ -14,6 +16,8 @@ import { globalStyles } from '../styles/globalStyles';
 import type { Evento, Votacao } from '../types/models';
 
 export default function IndexScreen() {
+  const navigation = useNavigation(); //  ADDED bot votar
+
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [votacoes, setVotacoes] = useState<Votacao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +140,7 @@ export default function IndexScreen() {
                   {!v.userVoted && (
                     <TouchableOpacity
                       style={globalStyles.primaryButton}
+                      onPress={() => navigation.navigate('Votacao' as never)} // ADDED bot votar
                     >
                       <Text
                         style={globalStyles.primaryButtonText}
