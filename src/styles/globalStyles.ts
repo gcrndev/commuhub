@@ -866,6 +866,118 @@ calendarPastText: {
     fontWeight: "600",
     color: "#dc2626",
   },
+
+  loginSafeArea: {
+  flex: 1,
+  backgroundColor: '#F8FAFC', // Fundo ultra-claro igual ao da imagem
+},
+loginHeaderContainer: {
+  alignItems: 'center',
+  paddingTop: 20,
+  paddingBottom: 20,
+},
+loginTitle: {
+  fontSize: 24,
+  fontWeight: '700',
+  color: '#1E293B',
+  marginBottom: 8,
+  textAlign: 'center',
+},
+loginSubtitle: {
+  fontSize: 14,
+  color: '#64748B',
+  textAlign: 'center',
+  paddingHorizontal: 20,
+},
+loginCardContainer: {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 24,
+  padding: 24,
+  marginHorizontal: 20,
+  marginTop: 10,
+  // Sombras para replicar o efeito elevado do card da imagem
+  shadowColor: '#0F172A',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.05,
+  shadowRadius: 16,
+  elevation: 4,
+},
+loginInputGroup: {
+  marginBottom: 20,
+},
+loginInputLabel: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#1E293B',
+  marginBottom: 8,
+},
+loginInputWrapper: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  height: 54,
+  backgroundColor: '#FFFFFF',
+},
+loginInput: {
+  flex: 1,
+  fontSize: 15,
+  color: '#1E293B',
+},
+loginRowOptions: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 24,
+},
+loginRememberMe: {
+  fontSize: 14,
+  color: '#64748B',
+},
+loginForgotPassword: {
+  fontSize: 14,
+  color: '#0052FF',
+  fontWeight: '500',
+},
+loginButton: {
+  backgroundColor: '#0052FF', // Azul vibrante da imagem
+  borderRadius: 12,
+  height: 52,
+  justifyContent: 'center',
+  alignItems: 'center',
+  shadowColor: '#0052FF',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  elevation: 3,
+},
+loginButtonText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: '600',
+},
+loginErrorText: {
+  color: '#EF4444',
+  fontSize: 13,
+  textAlign: 'center',
+  marginBottom: 15,
+},
+loginFooterContainer: {
+  marginTop: 30,
+  alignItems: 'center',
+},
+loginFooterText: {
+  fontSize: 14,
+  color: '#64748B',
+},
+loginFooterLink: {
+  color: '#0052FF',
+  fontWeight: '600',
+},
+
+  
 });
 
 
