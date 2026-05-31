@@ -221,18 +221,7 @@ export default function PerfilScreen({ navigation }: any) {
           </View>
 
           <View style={{ paddingVertical: 10 }}>
-            <View style={globalStyles.switchRow}>
-              <View>
-                <Text style={globalStyles.optionLabel}>Email</Text>
-                <Text style={globalStyles.optionSubLabel}>Receber notificações por email</Text>
-              </View>
-              <Switch
-                value={notifications.email}
-                onValueChange={() => toggleNotification("email")}
-                trackColor={{ false: "#e5e7eb", true: "#bfdbfe" }}
-                thumbColor={notifications.email ? "#2563eb" : "#f3f4f6"}
-              />
-            </View>
+            
 
             <View style={globalStyles.switchRow}>
               <View>
@@ -269,22 +258,27 @@ export default function PerfilScreen({ navigation }: any) {
 
         {/* Links de Segurança */}
         <View style={globalStyles.calendarCard}>
-          <TouchableOpacity style={[globalStyles.menuItem, globalStyles.borderBottom]}>
-            <View style={globalStyles.menuItemLeft}>
-              <Shield size={20} color={colors.textSecondary} />
-              <Text style={globalStyles.menuItemText}>Privacidade e Segurança</Text>
-            </View>
-            <ChevronRight size={20} color="#9ca3af" />
-          </TouchableOpacity>
+  <TouchableOpacity style={[globalStyles.menuItem, globalStyles.borderBottom]}>
+    <View style={globalStyles.menuItemLeft}>
+      <Shield size={20} color={colors.textSecondary} />
+      <Text style={globalStyles.menuItemText}>Privacidade e Segurança</Text>
+    </View>
+    <ChevronRight size={20} color="#9ca3af" />
+  </TouchableOpacity>
 
-          <TouchableOpacity style={globalStyles.menuItem}>
-            <View style={globalStyles.menuItemLeft}>
-              <Mail size={20} color={colors.textSecondary} />
-              <Text style={globalStyles.menuItemText}>Alterar Palavra-passe</Text>
-            </View>
-            <ChevronRight size={20} color="#9ca3af" />
-          </TouchableOpacity>
-        </View>
+  {/* AQUI: Adicionado o onPress para navegar e trocado o ícone para Key */}
+  <TouchableOpacity 
+    style={globalStyles.menuItem}
+    onPress={() => navigation.navigate('Password')}
+  >
+    <View style={globalStyles.menuItemLeft}>
+      {/* Importa o ícone Key no topo junto com os outros do 'lucide-react-native' se quiseres usar, senão podes manter o Shield/Mail */}
+      <Shield size={20} color={colors.textSecondary} /> 
+      <Text style={globalStyles.menuItemText}>Alterar Palavra-passe</Text>
+    </View>
+    <ChevronRight size={20} color="#9ca3af" />
+  </TouchableOpacity>
+</View>
 
         {/* Botão de Terminar Sessão */}
         <TouchableOpacity 

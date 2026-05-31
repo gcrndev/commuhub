@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext'; // Se precisares de logar o gajo direto após criar conta, senão podes apagar esta linha
+import { useAuth } from '../context/AuthContext';
+import Logo from '../assets/logo.png';
+import Feather from '@react-native-vector-icons/feather';
 
 import {
   View,
@@ -11,27 +13,31 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
+
 import { globalStyles } from '../styles/globalStyles';
-import { getSupabaseClient } from '../lib/supabase'; // Import idêntico ao do teu colega
+import { getSupabaseClient } from '../lib/supabase';
 
 export default function RegisterScreen({ navigation }: any) {
-  // 1. Estados para capturar os inputs e controlar a UI (seguindo o padrão do login)
+  // Estados para capturar os inputs e controlar a UI
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // Estados para alternar a visibilidade das passwords
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // 2. A função real de Registo
+  // A função real de Registo usando o teu novo formato .insert()
   const handleRegister = async () => {
-    // Validação básica de campos vazios
     if (!username || !password || !confirmPassword) {
       setErrorMessage('Preenche todos os campos.');
       return;
     }
 
-    // Validação de palavra-passe idêntica
     if (password !== confirmPassword) {
       setErrorMessage('As palavras-passe não coincidem.');
       return;
@@ -43,14 +49,14 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       const supabase = getSupabaseClient();
 
-      // 3. Chamada ao backend (inserindo na tabela pública 'users')
+      // Chamada ao backend inserindo diretamente na tabela pública 'users'
       const { error } = await supabase
         .from('users')
         .insert([
           { 
             username: username, 
             password: password, 
-            type: 'condomino' // Define o tipo padrão como condómino
+            type: 'condomino' 
           },
         ]);
 
@@ -70,73 +76,115 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={globalStyles.safeArea}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={globalStyles.loginSafeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      <View style={globalStyles.blueHeader}>
-        <Text style={globalStyles.headerTitle}>Criar Conta</Text>
-        <Text style={globalStyles.headerSubtitle}>
-          Junte-se à comunidade hoje
-        </Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+        
+        {/* LOGO */}
+        <View style={{ alignItems: 'center', marginTop: 90, marginBottom: 5 }}>
+          <Image
+            source={Logo}
+            style={{
+              width: 140,
+              height: 140,
+              resizeMode: 'contain',
+            }}
+          />
+        </View>
 
-      <View style={globalStyles.mainContent}>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 20 }}>
+        {/* Cabeçalho */}
+        <View style={globalStyles.loginHeaderContainer}>
+          <Text style={globalStyles.loginTitle}>Criar Conta</Text>
+          <Text style={globalStyles.loginSubtitle}>
+            Entre na sua conta CommuHub para continuar
+          </Text>
+        </View>
+
+        {/* Caixa/Card do Login adaptada para Registo */}
+        <View style={[globalStyles.loginCardContainer, { marginTop: 5, paddingBottom: 20 }]}>
           
-          <Text style={globalStyles.sectionTitle}>Dados Pessoais</Text>
-
-          {/* Input Nome */}
-          <View style={globalStyles.searchBarContainer}>
-            <TextInput 
-              style={globalStyles.searchInput} 
-              placeholder="Nome" 
-              placeholderTextColor="#999"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
+          {/* Input de Usuário */}
+          <View style={[globalStyles.loginInputGroup, { marginBottom: 15 }]}>
+            <Text style={globalStyles.loginInputLabel}>Nome de utilizador</Text>
+            <View style={globalStyles.loginInputWrapper}>
+              <TextInput
+                style={globalStyles.loginInput}
+                placeholder="username"
+                placeholderTextColor="#94A3B8"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
-          {/* Input Palavra-passe */}
-          <View style={globalStyles.searchBarContainer}>
-            <TextInput 
-              style={globalStyles.searchInput} 
-              placeholder="Palavra-passe" 
-              secureTextEntry 
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              editable={!isLoading}
-            />
+          {/* Input de Password */}
+          <View style={[globalStyles.loginInputGroup, { marginBottom: 15 }]}>
+            <Text style={globalStyles.loginInputLabel}>Palavra-passe</Text>
+            <View style={[globalStyles.loginInputWrapper, { flexDirection: 'row', alignItems: 'center' }]}>
+              <TextInput
+                style={[globalStyles.loginInput, { flex: 1 }]}
+                placeholder="password"
+                secureTextEntry={!showPassword}
+                placeholderTextColor="#94A3B8"
+                value={password}
+                onChangeText={setPassword}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ paddingHorizontal: 12 }}
+              >
+                <Feather
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color="#64748B"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Input Confirmar Palavra-passe */}
-          <View style={globalStyles.searchBarContainer}>
-            <TextInput 
-              style={globalStyles.searchInput} 
-              placeholder="Confirmar Palavra-passe" 
-              secureTextEntry 
-              placeholderTextColor="#999"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              editable={!isLoading}
-            />
+          {/* Input de Confirmar Password */}
+          <View style={[globalStyles.loginInputGroup, { marginBottom: 15 }]}>
+            <Text style={globalStyles.loginInputLabel}>Confirmar palavra-passe</Text>
+            <View style={[globalStyles.loginInputWrapper, { flexDirection: 'row', alignItems: 'center' }]}>
+              <TextInput
+                style={[globalStyles.loginInput, { flex: 1 }]}
+                placeholder="confirmar password"
+                secureTextEntry={!showConfirmPassword}
+                placeholderTextColor="#94A3B8"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{ paddingHorizontal: 12 }}
+              >
+                <Feather
+                  name={showConfirmPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color="#64748B"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Feedback visual de erro dinâmico idêntico ao login */}
+          {/* Mensagem de Erro Dinâmica */}
           {errorMessage ? (
-            <Text style={{ color: 'red', marginVertical: 10, textAlign: 'center' }}>
+            <Text style={globalStyles.loginErrorText}>
               {errorMessage}
             </Text>
           ) : null}
 
           {/* Botão de Finalizar */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              globalStyles.primaryButton, 
-              { height: 52, justifyContent: 'center', borderRadius: 14, marginTop: 10 },
-              isLoading && { opacity: 0.7 }
+              globalStyles.loginButton,
+              isLoading && { opacity: 0.7 },
+              { marginTop: 5 }
             ]}
             onPress={handleRegister}
             disabled={isLoading}
@@ -144,23 +192,24 @@ export default function RegisterScreen({ navigation }: any) {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={globalStyles.primaryButtonText}>FINALIZAR REGISTO</Text>
+              <Text style={globalStyles.loginButtonText}>FINALIZAR REGISTO</Text>
             )}
           </TouchableOpacity>
+        </View>
 
-          {/* Voltar para o Login */}
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            style={{ marginVertical: 30, alignItems: 'center' }}
-            disabled={isLoading}
-          >
-            <Text style={globalStyles.cardSubtitle}>
-              Já tem conta? <Text style={{fontWeight: 'bold', color: '#0052FF'}}>Faça Login</Text>
-            </Text>
-          </TouchableOpacity>
-          
-        </ScrollView>
-      </View>
+        {/* Voltar para o Login */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[globalStyles.loginFooterContainer, { marginTop: 20 }]}
+          disabled={isLoading}
+        >
+          <Text style={globalStyles.loginFooterText}>
+            Já tem uma conta?{' '}
+            <Text style={globalStyles.loginFooterLink}>Inicie sessão</Text>
+          </Text>
+        </TouchableOpacity>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
