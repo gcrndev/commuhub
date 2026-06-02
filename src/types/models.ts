@@ -34,4 +34,5 @@ export type Evento = {
   date: string;
   time: string;
   location: string;
+  description?: string;
 };
