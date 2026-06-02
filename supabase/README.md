@@ -134,25 +134,24 @@ Messaging, Supabase Edge Functions, triggers Postgres e webhook da base de dados
 - Criada a Edge Function `supabase/functions/push/index.ts`.
 - Configurado o secret `FCM_SERVICE_ACCOUNT_JSON` no Supabase.
 - Criado webhook remoto: insert em `public.notifications` chama a funcao `push`.
-- Criadas triggers em `public.documentos` e `public.votacoes` para gerar
-  notificacoes automaticamente em criacao e edicao.
-- A app sincroniza o token FCM no ecrã Perfil quando push esta ativo.
-- A Edge Function respeita preferencias por utilizador:
-  `push_enabled`, `notify_documentos`, `notify_votacoes`, `notify_eventos`.
+- Criadas triggers de insert em `public.documentos`, `public.votacoes` e `public.eventos`.
+- A app sincroniza o token FCM no login e regista o handler foreground no arranque.
+- O mesmo token FCM e limpo de outros perfis antes de ser gravado no utilizador logado, evitando varias notificacoes no mesmo aparelho.
 - Firebase Android app configurada com package `com.commuhub`.
 - Ficheiro Firebase Android colocado em `android/app/google-services.json`.
 
 Fluxo:
 
-1. A app grava o token FCM do utilizador em `public.profiles.fcm_token`.
-2. Quando um documento ou votacao e criado/editado, um trigger cria uma linha
-   em `public.notifications` para cada utilizador.
-3. O webhook de `public.notifications` chama a Edge Function `push`.
-4. A funcao procura o token FCM e as preferencias do utilizador.
-5. Se o utilizador desativou push ou a categoria, a funcao nao envia e grava
-   `send_error` com `Skipped: ...`.
-6. Se estiver permitido, a funcao envia a push para Firebase Cloud Messaging.
-7. Se enviar com sucesso, preenche `sent_at`; se falhar, preenche `send_error`.
+1. Ao fazer login, a app chama `setupPushNotifications(user.id)`.
+2. A funcao pede permissao Android/Firebase, obtem o token FCM e grava em `public.profiles.fcm_token`.
+3. Antes de gravar, remove esse mesmo token de outros perfis.
+4. Quando um documento, votacao ou evento e criado, um trigger cria uma linha em `public.notifications` para cada utilizador em `public.users`.
+5. O webhook de `public.notifications` chama a Edge Function `push`.
+6. A Edge Function procura `profiles.fcm_token` do utilizador da notificacao.
+7. Se existir token, envia para Firebase Cloud Messaging e preenche `sent_at`.
+8. Se nao existir token, grava `send_error = 'User has no FCM token'`.
+
+Nota: os switches de preferencias do Perfil continuam no app, mas a Edge Function nao usa `push_enabled`, `notify_documentos`, `notify_votacoes` ou `notify_eventos` para bloquear envio. Regra atual: todos os utilizadores com `fcm_token` valido recebem.
 
 ### Formato da notificacao
 
@@ -183,57 +182,67 @@ As notificacoes automaticas sao criadas por triggers no Supabase.
 
 Documentos:
 
-- `documentos_notify_after_insert`: cria push `Novo documento`.
-- `documentos_notify_after_update`: cria push `Documento atualizado`.
+- `documentos_notify_after_insert`: cria push `Upload novo`.
 - `data.screen`: `Docs`.
 
 Votacoes:
 
-- `votacoes_notify_after_insert`: cria push `Nova votação`.
-- `votacoes_notify_after_update`: cria push `Votação atualizada`.
+- `votacoes_notify_after_insert`: cria push `Votação nova`.
 - `data.screen`: `Votacoes`.
+
+Eventos:
+
+- `eventos_notify_after_insert`: cria push `Evento novo`.
+- `data.screen`: `Agenda`.
 
 As funcoes privadas responsaveis sao:
 
 - `private.create_document_notification()`
 - `private.create_votacao_notification()`
+- `private.create_evento_notification()`
 
-Cada trigger insere uma notificacao em `public.notifications` para todos os
-utilizadores em `public.users`. A Edge Function decide se envia ou ignora com
-base nas preferencias guardadas em `public.profiles`.
+Nao existem triggers de update para documentos ou votacoes nesta regra atual.
+Editar documento/votacao nao deve gerar push.
 
-### Preferencias no Perfil
+### Sincronizacao do token no app
 
-O ecrã Perfil controla:
-
-- `push_enabled`: liga/desliga todas as push notifications.
-- `notify_documentos`: liga/desliga notificacoes de documentos.
-- `notify_votacoes`: liga/desliga notificacoes de votacoes.
-- `notify_eventos`: reservado para notificacoes de eventos.
-
-Quando `push_enabled` esta ativo, o app chama `setupPushNotifications(user.id)`,
-pede permissao ao Android/Firebase, obtem o token FCM e guarda:
+No login, a app chama:
 
 ```ts
+setupPushNotifications(user.id).catch(pushError => {
+  console.error('Erro ao configurar push notifications no login:', pushError);
+});
+```
+
+A funcao obtem o token do Firebase, limpa duplicados e grava:
+
+```ts
+await supabase
+  .from('profiles')
+  .update({
+    fcm_token: null,
+    fcm_token_updated_at: null,
+  })
+  .eq('fcm_token', token)
+  .neq('id', userId);
+
 await supabase.from('profiles').upsert({
-  id: user.id,
+  id: userId,
   fcm_token: token,
   fcm_token_updated_at: new Date().toISOString(),
 });
 ```
+
+O foreground handler e registado no arranque do app em `index.js` para evitar
+perder notificacoes enquanto o app esta aberto. O handler e unico para evitar
+notificacoes duplicadas no mesmo aparelho.
 
 ### Como criar uma push manual
 
 Para testar quando ja existir token FCM real:
 
 ```sql
-update public.profiles
-set fcm_token = '<TOKEN_FCM_REAL>',
-    fcm_token_updated_at = now()
-where id = '<USER_ID>';
-
 insert into public.notifications (user_id, title, body, data)
-
 values (
   '<USER_ID>',
   'Titulo teste',
@@ -253,26 +262,77 @@ limit 5;
 
 ### Como testar automatico
 
-Criar ou editar uma votacao:
+Criar evento:
 
 ```sql
-update public.votacoes
-set title = title
-where id = '1';
+insert into public.eventos (id, title, date, time, location)
+values (
+  extract(epoch from now())::bigint::text,
+  'evento teste',
+  '2026-06-02',
+  '15:00',
+  'Teste'
+);
 ```
 
-Criar ou editar um documento:
+Criar votacao:
 
 ```sql
-update public.documentos
-set title = title
-where id = '1';
+insert into public.votacoes (
+  id,
+  title,
+  description,
+  deadline,
+  status,
+  user_voted,
+  votes_sim,
+  votes_nao,
+  votes_abstencao,
+  total_voters
+)
+values (
+  extract(epoch from now())::bigint::text,
+  'votacao teste',
+  'Teste de notificacao',
+  '2026-06-30',
+  'active',
+  false,
+  0,
+  0,
+  0,
+  0
+);
+```
+
+Criar documento:
+
+```sql
+insert into public.documentos (
+  id,
+  title,
+  category,
+  type,
+  date,
+  size,
+  file_path,
+  mime_type
+)
+values (
+  extract(epoch from now())::bigint::text,
+  'documento teste',
+  'Teste',
+  'IMG',
+  '2026-06-02',
+  '1 KB',
+  'uploads/teste.jpg',
+  'image/jpeg'
+);
 ```
 
 Verificar resultado:
 
 ```sql
-select title, body, data, sent_at, send_error, created_at
+select title, body, data->>'screen' as screen, sent_at, send_error, created_at
 from public.notifications
 order by created_at desc
 limit 20;
@@ -283,16 +343,11 @@ limit 20;
 - `@react-native-firebase/messaging` e `@notifee/react-native` estao instalados.
 - Android/Firebase estao configurados com `android/app/google-services.json`.
 - O app mostra notificacoes foreground com Notifee.
-- Como a mensagem FCM e `data-only`, o app le `remoteMessage.data.title` e
-  `remoteMessage.data.body`.
-- O token FCM e sincronizado no Perfil, nao no ecrã Documentos.
+- Como a mensagem FCM e `data-only`, o app le `remoteMessage.data.title` e `remoteMessage.data.body`.
+- O token FCM e sincronizado no login.
 - Ainda nao ha navegacao automatica ao tocar na notificacao.
 
 ### Comando util
-
-```bash
-supabase functions deploy push --project-ref chbccyllwibmlbvvexzw
-```
 
 Quando alterar a Edge Function, fazer deploy:
 
