@@ -4,6 +4,19 @@ import notifee from '@notifee/react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { getSupabaseClient } from '../lib/supabase';
 
+let foregroundMessageUnsubscribe: (() => void) | null = null;
+
+export function registerForegroundPushHandler() {
+  if (foregroundMessageUnsubscribe) {
+    return;
+  }
+
+  foregroundMessageUnsubscribe = messaging().onMessage(async remoteMessage => {
+    console.log('Notificacao recebida com a app aberta:', remoteMessage);
+    await displayPushNotification(remoteMessage);
+  });
+}
+
 export async function displayPushNotification(
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
 ) {
@@ -64,6 +77,20 @@ export async function setupPushNotifications(userId: string) {
     if (!token) return;
 
     const supabase = getSupabaseClient();
+    const { error: clearTokenError } = await supabase
+      .from('profiles')
+      .update({
+        fcm_token: null,
+        fcm_token_updated_at: null,
+      })
+      .eq('fcm_token', token)
+      .neq('id', userId);
+
+    if (clearTokenError) {
+      console.error('Erro ao limpar token FCM duplicado:', clearTokenError);
+      return;
+    }
+
     const { error } = await supabase.from('profiles').upsert({
       id: userId,
       fcm_token: token,
@@ -79,10 +106,7 @@ export async function setupPushNotifications(userId: string) {
       'Token FCM sincronizado com o perfil do utilizador com sucesso!',
     );
 
-    messaging().onMessage(async remoteMessage => {
-      console.log('Notificacao recebida com a app aberta:', remoteMessage);
-      await displayPushNotification(remoteMessage);
-    });
+    registerForegroundPushHandler();
   } catch (error) {
     console.error('Erro fatal no setup do Push Notifications:', error);
   }

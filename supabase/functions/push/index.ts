@@ -52,9 +52,7 @@ Deno.serve(async (req) => {
   try {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select(
-        'fcm_token, push_enabled, notify_votacoes, notify_eventos, notify_documentos',
-      )
+      .select('fcm_token')
       .eq('id', notification.user_id)
       .single()
 
@@ -64,12 +62,6 @@ Deno.serve(async (req) => {
 
     if (!profile?.fcm_token) {
       throw new Error('User has no FCM token')
-    }
-
-    const skippedReason = getNotificationSkipReason(profile, notification)
-    if (skippedReason) {
-      await markNotificationFailed(notification.id, skippedReason)
-      return jsonResponse({ ok: true, skipped: skippedReason })
     }
 
     const serviceAccount = getFirebaseServiceAccount()
@@ -90,36 +82,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: false, error: message }, 500)
   }
 })
-
-function getNotificationSkipReason(
-  profile: {
-    push_enabled: boolean | null
-    notify_votacoes: boolean | null
-    notify_eventos: boolean | null
-    notify_documentos: boolean | null
-  },
-  notification: NotificationRecord,
-) {
-  if (profile.push_enabled === false) {
-    return 'Skipped: push disabled by user'
-  }
-
-  const screen = notification.data?.screen
-
-  if (screen === 'Docs' && profile.notify_documentos === false) {
-    return 'Skipped: document notifications disabled by user'
-  }
-
-  if (screen === 'Agenda' && profile.notify_eventos === false) {
-    return 'Skipped: event notifications disabled by user'
-  }
-
-  if (screen === 'Votacoes' && profile.notify_votacoes === false) {
-    return 'Skipped: voting notifications disabled by user'
-  }
-
-  return null
-}
 
 function getSupabaseServiceKey() {
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')

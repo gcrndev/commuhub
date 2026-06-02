@@ -16,6 +16,7 @@ import {
 
 import { globalStyles } from '../styles/globalStyles';
 import { getSupabaseClient } from '../lib/supabase';
+import { setupPushNotifications } from '../services/notificationService';
 
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
@@ -54,6 +55,9 @@ export default function LoginScreen({ navigation }: any) {
 
       if (user) {
         login(user);
+        setupPushNotifications(user.id).catch(pushError => {
+          console.error('Erro ao configurar push notifications no login:', pushError);
+        });
         navigation.replace('MainTabs');
       } else {
         setErrorMessage('Credenciais inválidas. Tenta novamente.');
