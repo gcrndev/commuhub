@@ -20,7 +20,7 @@ import { globalStyles } from '../styles/globalStyles';
 import { getSupabaseClient } from '../lib/supabase';
 
 export default function ChangePasswordScreen({ navigation }: any) {
-  const { user } = useAuth(); // Assume que o teu AuthContext guarda os dados do utilizador logado (ex: user.id ou user.username)
+  const { user } = useAuth(); // Vai buscar o utilizador logado (id, username, etc.)
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -34,6 +34,7 @@ export default function ChangePasswordScreen({ navigation }: any) {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   const handleChangePassword = async () => {
+    // 1. Validações Locais (na App)
     if (!currentPassword || !newPassword || !confirmNewPassword) {
       setErrorMessage('Preenche todos os campos.');
       return;
@@ -44,7 +45,6 @@ export default function ChangePasswordScreen({ navigation }: any) {
       return;
     }
 
-    // Opcional: Impedir que a nova password seja igual à antiga se o teu backend não validar isso
     if (currentPassword === newPassword) {
       setErrorMessage('A nova palavra-passe não pode ser igual à atual.');
       return;
@@ -56,15 +56,24 @@ export default function ChangePasswordScreen({ navigation }: any) {
     try {
       const supabase = getSupabaseClient();
 
-      // Atualiza a password diretamente na tabela 'users' para o utilizador atual
-      const { error } = await supabase
+      // 2. Faz o update diretamente usando o ID do utilizador que confirmámos no teste
+      const { data, error } = await supabase
         .from('users')
         .update({ password: newPassword })
-        .eq('id', user?.id) // Ajusta para a chave primária que usas (ex: 'id', 'username', etc.)
-        .eq('password', currentPassword); // Garante que ele sabe a password antiga para poder mudar
+        .eq('id', user?.id) 
+        .eq('password', currentPassword)
+        .select(); 
 
       if (error) throw error;
 
+      // 3. Se o RLS está desativado e mesmo assim não retornar dados, 
+      // significa que o user digitou a password atual errada no input.
+      if (!data || data?.length === 0) {
+        setErrorMessage('A palavra-passe atual está incorreta.');
+        return;
+      }
+
+      // Sucesso Total!
       Alert.alert('Sucesso!', 'A tua palavra-passe foi alterada!', [
         { text: 'Ok', onPress: () => navigation.goBack() }
       ]);
@@ -103,7 +112,7 @@ export default function ChangePasswordScreen({ navigation }: any) {
           </Text>
         </View>
 
-        {/* Card de Inputs (Estilos de Login Reutilizados) */}
+        {/* Card de Inputs */}
         <View style={[globalStyles.loginCardContainer, { marginTop: 5, paddingBottom: 20 }]}>
           
           {/* Input Password Atual */}

@@ -258,13 +258,7 @@ export default function PerfilScreen({ navigation }: any) {
 
         {/* Links de Segurança */}
         <View style={globalStyles.calendarCard}>
-  <TouchableOpacity style={[globalStyles.menuItem, globalStyles.borderBottom]}>
-    <View style={globalStyles.menuItemLeft}>
-      <Shield size={20} color={colors.textSecondary} />
-      <Text style={globalStyles.menuItemText}>Privacidade e Segurança</Text>
-    </View>
-    <ChevronRight size={20} color="#9ca3af" />
-  </TouchableOpacity>
+  
 
   {/* AQUI: Adicionado o onPress para navegar e trocado o ícone para Key */}
   <TouchableOpacity 

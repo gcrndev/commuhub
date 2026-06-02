@@ -49,18 +49,34 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       const supabase = getSupabaseClient();
 
-      // Chamada ao backend inserindo diretamente na tabela pública 'users'
-      const { error } = await supabase
+      // 1. VERIFICAÇÃO: Procura se o utilizador já existe na base de dados
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('username')
+        .eq('username', username.trim())
+        .maybeSingle(); // Devolve o objeto se encontrar, ou null se não encontrar
+
+      if (checkError) throw checkError;
+
+      // Se encontrou algum registo, interrompe o registo e mostra o aviso
+      if (existingUser) {
+        setErrorMessage('Este nome de utilizador já está a ser utilizado.');
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. REGISTO: Se passou no teste anterior, avança com a inserção
+      const { error: insertError } = await supabase
         .from('users')
         .insert([
           { 
-            username: username, 
+            username: username.trim(), 
             password: password, 
             type: 'condomino' 
           },
         ]);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       // Se correu bem, avisa o utilizador e manda-o para o Login
       Alert.alert('Sucesso!', 'Conta criada com sucesso!', [
