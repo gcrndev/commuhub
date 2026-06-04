@@ -1,11 +1,6 @@
 import { getSupabaseClient } from '../lib/supabase';
 //import type { Documento, Evento, Votacao, VotacaoStatus } from '../types/models';
-import type {
-  
-  Evento,
-  Votacao,
-  VotacaoStatus,
-} from '../types/models';
+import type { Evento, Votacao, VotacaoStatus } from '../types/models';
 
 type VotacaoRow = {
   id: string | number;
@@ -28,8 +23,8 @@ type DocumentoRow = {
   type: string;
   date: string;
   size: string;
-  
-  file_path: string; 
+
+  file_path: string;
   mime_type: string;
 };
 
@@ -79,7 +74,7 @@ export async function getDocumentos(): Promise<any[]> {
   // 2. Atualizar a query ao Supabase para puxar as novas colunas
   const { data, error } = await supabase
     .from('documentos')
-    .select('id,title,category,type,date,size,file_path,mime_type') 
+    .select('id,title,category,type,date,size,file_path,mime_type')
     .order('id', { ascending: true });
 
   if (error) {

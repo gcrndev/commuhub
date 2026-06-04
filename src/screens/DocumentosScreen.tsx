@@ -250,20 +250,16 @@ async function loadDocumentos() {
           style={{
             marginVertical: 10,
             padding: 10,
-            backgroundColor: '#f0f0f0',
             borderRadius: 8,
           }}
         >
-          <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>
-            Estás logado como: {user?.username} ({user?.type})
-          </Text>
+          
 
           {user?.type === 'admin' && (
             <TouchableOpacity
               style={{
                 backgroundColor: '#28a745',
                 padding: 12,
-                marginTop: 10,
                 borderRadius: 8,
               }}
               onPress={() => setModalVisible(true)} // <-- AQUI MUDEI PARA ABRIR O MODAL
@@ -275,7 +271,7 @@ async function loadDocumentos() {
                   fontWeight: 'bold',
                 }}
               >
-                + ADICIONAR DOCUMENTO (Só para Admins)
+                + ADICIONAR DOCUMENTO
               </Text>
             </TouchableOpacity>
           )}

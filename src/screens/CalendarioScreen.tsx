@@ -243,6 +243,7 @@ export default function CalendarioScreen() {
               padding: 12,
               borderRadius: 8,
               marginBottom: 15,
+              marginTop: 20,
             }}
             onPress={() => setModalVisible(true)}
           >
