@@ -14,6 +14,7 @@ type VotacaoRow = {
   votes_nao: number;
   votes_abstencao: number;
   total_voters: number;
+  is_private: boolean;
 };
 
 type DocumentoRow = {
@@ -42,7 +43,7 @@ export async function getVotacoes(): Promise<Votacao[]> {
   const { data, error } = await supabase
     .from('votacoes')
     .select(
-      'id,title,description,deadline,status,user_voted,user_vote,votes_sim,votes_nao,votes_abstencao,total_voters',
+      'id,title,description,deadline,status,user_voted,user_vote,votes_sim,votes_nao,votes_abstencao,total_voters,is_private',
     )
     .order('id', { ascending: true });
 
@@ -64,6 +65,7 @@ export async function getVotacoes(): Promise<Votacao[]> {
       abstencao: row.votes_abstencao,
     },
     totalVoters: row.total_voters,
+    is_private: row.is_private ?? false,
   }));
 }
 

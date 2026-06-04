@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Switch,
 } from 'react-native';
 
 import { getSupabaseClient } from '../lib/supabase';
@@ -18,6 +19,9 @@ import {
   Clock,
   XCircle,
   Edit2,
+  HelpCircle,
+  Lock, 
+  Eye,  
 } from 'react-native-feather';
 
 import Svg, { Circle, G } from 'react-native-svg';
@@ -48,6 +52,7 @@ export default function VotacaoScreen() {
     title: '',
     description: '',
     deadline: '',
+    is_private: false,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -84,36 +89,42 @@ export default function VotacaoScreen() {
   }, []);
 
   // --- FUNÇÃO PARA COMPUTAR O VOTO NO SUPABASE E NA UI ---
-  const handleVote = async (votacaoId: string, opcao: 'sim' | 'nao') => {
+  const handleVote = async (votacaoId: string, opcao: 'sim' | 'nao' | 'abs') => {
     try {
       const supabase = getSupabaseClient();
-      const colunaSupabase = opcao === 'sim' ? 'votes_sim' : 'votes_nao';
+      
+      let colunaSupabase = 'votes_sim';
+      if (opcao === 'nao') colunaSupabase = 'votes_nao';
+      if (opcao === 'abs') colunaSupabase = 'votes_abstencao';
 
-      // Localiza a votação correta na memória
+      const chaveEstado = opcao === 'abs' ? 'abstencao' : opcao;
+
       const votacaoAtual = votacoes.find(v => v.id === votacaoId);
       if (!votacaoAtual) return;
 
-      // Soma +1 ao valor que já existe localmente
-      const novoValorVoto = (votacaoAtual.votes[opcao] || 0) + 1;
+      const novoValorVoto = (votacaoAtual.votes[chaveEstado] || 0) + 1;
+      const novoTotalVoters = (votacaoAtual.totalVoters || 0) + 1;
 
-      // Atualiza o Supabase
       const { error } = await supabase
         .from('votacoes')
-        .update({ [colunaSupabase]: novoValorVoto })
+        .update({ 
+          [colunaSupabase]: novoValorVoto,
+          total_voters: novoTotalVoters
+        })
         .eq('id', votacaoId);
 
       if (error) throw error;
 
-      // Atualiza a interface em tempo real
       setVotacoes(prevVotacoes =>
         prevVotacoes.map(v => {
           if (v.id === votacaoId) {
             return {
               ...v,
               userVoted: true,
+              totalVoters: novoTotalVoters,
               votes: {
                 ...v.votes,
-                [opcao]: novoValorVoto
+                [chaveEstado]: novoValorVoto
               }
             };
           }
@@ -131,7 +142,7 @@ export default function VotacaoScreen() {
   // --- FUNÇÕES DE ADMIN ---
   const handleOpenAdd = () => {
     setEditingVotacao(null);
-    setFormData({ title: '', description: '', deadline: '' });
+    setFormData({ title: '', description: '', deadline: '', is_private: false });
     setModalVisible(true);
   };
 
@@ -141,6 +152,7 @@ export default function VotacaoScreen() {
       title: votacao.title,
       description: votacao.description,
       deadline: votacao.deadline,
+      is_private: votacao.is_private || false,
     });
     setModalVisible(true);
   };
@@ -154,13 +166,13 @@ export default function VotacaoScreen() {
     try {
       const supabase = getSupabaseClient();  
       if (editingVotacao) {
-        // ---- MODO EDIÇÃO ----
         const { error } = await supabase
           .from('votacoes')
           .update({
             title: formData.title,
             description: formData.description,
             deadline: formData.deadline,
+            is_private: formData.is_private,
           })
           .eq('id', editingVotacao.id);  
 
@@ -169,15 +181,20 @@ export default function VotacaoScreen() {
         setVotacoes(prevVotacoes =>
           prevVotacoes.map(v =>
             v.id === editingVotacao.id
-              ? { ...v, title: formData.title, description: formData.description, deadline: formData.deadline }
+              ? { 
+                  ...v, 
+                  title: formData.title, 
+                  description: formData.description, 
+                  deadline: formData.deadline,
+                  is_private: formData.is_private 
+                }
               : v
           )
         ); 
 
         Alert.alert('Sucesso', 'Votação atualizada!'); 
       } else {
-        // ---- MODO CRIAÇÃO ----
-     const newVotacaoId = new Date().getTime().toString();
+        const newVotacaoId = new Date().getTime().toString();
 
         const { data, error } = await supabase
           .from('votacoes')
@@ -191,7 +208,8 @@ export default function VotacaoScreen() {
             votes_sim: 0,
             votes_nao: 0,
             votes_abstencao: 0,
-            total_voters: 0
+            total_voters: 0,
+            is_private: formData.is_private
           }])
           .select();
 
@@ -205,7 +223,8 @@ export default function VotacaoScreen() {
           status: 'active',
           userVoted: false,
           votes: { sim: 0, nao: 0, abstencao: 0 },
-          totalVoters: 0
+          totalVoters: 0,
+          is_private: formData.is_private
         };
 
         setVotacoes([novaVotacao, ...votacoes]);
@@ -221,6 +240,8 @@ export default function VotacaoScreen() {
     }
   };
 
+  // Filtra as votações APENAS pelo estado da Tab ('active', 'closed', 'all').
+  // Todos os utilizadores conseguem ver a listagem.
   const filteredVotacoes = votacoes.filter(
     v => filter === 'all' || v.status === filter,
   );
@@ -293,7 +314,8 @@ export default function VotacaoScreen() {
 
               const circumference = 251.2;
               const greenStroke = total > 0 ? (item.votes.sim / total) * circumference : 0;
-              const redStroke = total > 0 ? ((item.votes.sim + item.votes.nao) / total) * circumference : 0;
+              const redStroke = total > 0 ? (item.votes.nao / total) * circumference : 0;
+              const grayStroke = total > 0 ? (item.votes.abstencao / total) * circumference : 0;
 
               return (
                 <View style={[globalStyles.docCard, globalStyles.voteCard]}>
@@ -304,10 +326,25 @@ export default function VotacaoScreen() {
                           {item.title}
                         </Text>
                         
+                        {/* Todos os utilizadores veem se o selo é privado, mas o admin ganha o botão de editar */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 5 }}>
+                          {item.is_private ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffebe9', padding: 4, borderRadius: 5 }}>
+                              <Lock stroke="#ea4335" width={14} height={14} />
+                              <Text style={{ color: '#ea4335', fontSize: 10, marginLeft: 3, fontWeight: 'bold' }}>Privada</Text>
+                            </View>
+                          ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#e6f4ea', padding: 4, borderRadius: 5 }}>
+                              <Eye stroke="#137333" width={14} height={14} />
+                              <Text style={{ color: '#137333', fontSize: 10, marginLeft: 3, fontWeight: 'bold' }}>Pública</Text>
+                            </View>
+                          )}
+                        </View>
+
                         {isAdmin && (
                           <TouchableOpacity 
                             onPress={() => handleOpenEdit(item)}
-                            style={{ padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, marginLeft: 10 }}
+                            style={{ padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, marginLeft: 5 }}
                           >
                             <Edit2 stroke="#0052FF" width={18} height={18} />
                           </TouchableOpacity>
@@ -343,52 +380,71 @@ export default function VotacaoScreen() {
                     </View>
                   </View>
 
-                  <View style={globalStyles.voteProgressContainer}>
-                    <View style={globalStyles.voteProgressHeader}>
-                      <Text style={globalStyles.voteProgressLabel}>Aprovação</Text>
-                      <Text style={globalStyles.voteProgressValue}>{simPerc}%</Text>
-                    </View>
+                  {/* Barra de Aprovação Geral: Se for privada e o user não for Admin, ocultamos a percentagem */}
+                  {(!item.is_private || isAdmin) ? (
+                    <View style={globalStyles.voteProgressContainer}>
+                      <View style={globalStyles.voteProgressHeader}>
+                        <Text style={globalStyles.voteProgressLabel}>Aprovação</Text>
+                        <Text style={globalStyles.voteProgressValue}>{simPerc}%</Text>
+                      </View>
 
-                    <View style={globalStyles.progressBarBackground}>
-                      <View
-                        style={[
-                          globalStyles.progressBarFill,
-                          { width: `${simPerc}%` as any },
-                        ]}
-                      />
+                      <View style={globalStyles.progressBarBackground}>
+                        <View
+                          style={[
+                            globalStyles.progressBarFill,
+                            { width: `${simPerc}%` as any },
+                          ]}
+                        />
+                      </View>
                     </View>
-                  </View>
+                  ) : (
+                    <View style={{ paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0', marginTop: 10 }}>
+                      <Text style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>Parciais ocultas (Votação Privada)</Text>
+                    </View>
+                  )}
 
                   {!item.userVoted && (
                     <View style={globalStyles.voteActionsRow}>
-                      <TouchableOpacity 
-                        style={globalStyles.voteApproveButton}
-                        onPress={() => handleVote(item.id, 'sim')}
-                      >
+                      <TouchableOpacity style={globalStyles.voteApproveButton} onPress={() => handleVote(item.id, 'sim')}>
                         <CheckCircle stroke="#FFF" width={16} height={16} />
                         <Text style={globalStyles.voteActionText}>A Favor</Text>
                       </TouchableOpacity>
                       
-                      <TouchableOpacity 
-                        style={globalStyles.voteRejectButton}
-                        onPress={() => handleVote(item.id, 'nao')}
-                      >
+                      <TouchableOpacity style={globalStyles.voteAbstention} onPress={() => handleVote(item.id, 'abs')}>
+                        <HelpCircle stroke="#FFF" width={16} height={16} />
+                        <Text style={globalStyles.voteActionText}>Abster-se</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity style={globalStyles.voteRejectButton} onPress={() => handleVote(item.id, 'nao')}>
                         <XCircle stroke="#FFF" width={16} height={16} />
                         <Text style={globalStyles.voteActionText}>Contra</Text>
                       </TouchableOpacity>
                     </View>
                   )}
 
-                  <TouchableOpacity
-                    onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                    style={globalStyles.voteDetailsButton}
-                  >
-                    <Text style={globalStyles.voteDetailsText}>
-                      {expandedId === item.id ? 'Ocultar detalhes' : 'Ver detalhes'}
-                    </Text>
-                  </TouchableOpacity>
+                  {/* --- VERIFICAÇÃO DE DETALHES --- */}
+                  {/* Se for pública OU se o utilizador for admin, renderiza o botão normalmente */}
+                  {(!item.is_private || isAdmin) ? (
+                    <TouchableOpacity
+                      onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                      style={globalStyles.voteDetailsButton}
+                    >
+                      <Text style={globalStyles.voteDetailsText}>
+                        {expandedId === item.id ? 'Ocultar detalhes' : 'Ver detalhes'}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    // Se for privada e for condómino, mostra uma mensagem a avisar que os detalhes não estão disponíveis
+                    <View style={[globalStyles.voteDetailsButton, { backgroundColor: '#f9f9f9', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }]}>
+                      <Lock stroke="#999" width={12} height={12} style={{ marginRight: 5 }} />
+                      <Text style={{ color: '#999', fontSize: 13, fontWeight: '500' }}>
+                        Detalhes privados apenas para a gerência
+                      </Text>
+                    </View>
+                  )}
 
-                  {expandedId === item.id && (
+                  {/* Expandido (Gráfico): Só abre se passar na validação de cima */}
+                  {expandedId === item.id && (!item.is_private || isAdmin) && (
                     <View style={globalStyles.voteExpandedSection}>
                       <Text style={globalStyles.voteExpandedTitle}>Distribuição de Votos</Text>
 
@@ -396,34 +452,10 @@ export default function VotacaoScreen() {
                         <View style={globalStyles.voteChartContainer}>
                           <Svg width="140" height="140" viewBox="0 0 100 100">
                             <G rotation="-90" origin="50, 50">
-                              <Circle
-                                cx="50"
-                                cy="50"
-                                r="40"
-                                stroke="#9ca3af"
-                                strokeWidth="10"
-                                fill="none"
-                              />
-
-                              <Circle
-                                cx="50"
-                                cy="50"
-                                r="40"
-                                stroke="#ef4444"
-                                strokeWidth="10"
-                                fill="none"
-                                strokeDasharray={`${redStroke} ${circumference}`}
-                              />
-
-                              <Circle
-                                cx="50"
-                                cy="50"
-                                r="40"
-                                stroke="#2ecc71"
-                                strokeWidth="10"
-                                fill="none"
-                                strokeDasharray={`${greenStroke} ${circumference}`}
-                              />
+                              <Circle cx="50" cy="50" r="40" stroke="#f3f4f6" strokeWidth="10" fill="none" />
+                              <Circle cx="50" cy="50" r="40" stroke="#ef4444" strokeWidth="10" fill="none" strokeDasharray={`${redStroke} ${circumference}`} strokeDashoffset={0} />
+                              <Circle cx="50" cy="50" r="40" stroke="#9ca3af" strokeWidth="10" fill="none" strokeDasharray={`${grayStroke} ${circumference}`} strokeDashoffset={-redStroke} />
+                              <Circle cx="50" cy="50" r="40" stroke="#2ecc71" strokeWidth="10" fill="none" strokeDasharray={`${greenStroke} ${circumference}`} strokeDashoffset={-(redStroke + grayStroke)} />
                             </G>
                           </Svg>
 
@@ -436,7 +468,7 @@ export default function VotacaoScreen() {
 
                       <View style={globalStyles.voteStatsRow}>
                         <StatItem label="A Favor" value={item.votes.sim} color="#2ecc71" />
-                        <StatItem label="Contra" value={item.votes.nao} color="#e74c3c" />
+                        <StatItem label="Contra" value={item.votes.nao} color="#ef4444" />
                         <StatItem label="Abstenção" value={item.votes.abstencao} color="#9ca3af" />
                       </View>
                     </View>
@@ -450,43 +482,15 @@ export default function VotacaoScreen() {
 
       {/* --- MODAL ADMIN (CRIAR E EDITAR) --- */}
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            padding: 20
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: 'white',
-              padding: 20,
-              borderRadius: 10
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                marginBottom: 15,
-                textAlign: 'center'
-              }}
-            >
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' }}>
               {editingVotacao ? 'Editar Votação' : 'Criar Nova Votação'}
             </Text>
 
             <TextInput
               placeholder="Título (ex: Pintura do Prédio)"
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginBottom: 10,
-                borderRadius: 5,
-                color: '#000',
-                backgroundColor: '#fafafa'
-              }}
+              style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, borderRadius: 5, color: '#000', backgroundColor: '#fafafa' }}
               placeholderTextColor="#999"
               value={formData.title}
               onChangeText={(text) => setFormData({ ...formData, title: text })}
@@ -496,16 +500,7 @@ export default function VotacaoScreen() {
               placeholder="Descrição completa..."
               multiline
               numberOfLines={3}
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginBottom: 10,
-                borderRadius: 5,
-                color: '#000',
-                backgroundColor: '#fafafa',
-                textAlignVertical: 'top'
-              }}
+              style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, borderRadius: 5, color: '#000', backgroundColor: '#fafafa', textAlignVertical: 'top' }}
               placeholderTextColor="#999"
               value={formData.description}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
@@ -513,55 +508,36 @@ export default function VotacaoScreen() {
 
             <TextInput
               placeholder="Prazo (ex: 30 de Nov)"
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginBottom: 15,
-                borderRadius: 5,
-                color: '#000',
-                backgroundColor: '#fafafa'
-              }}
+              style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 15, borderRadius: 5, color: '#000', backgroundColor: '#fafafa' }}
               placeholderTextColor="#999"
               value={formData.deadline}
               onChangeText={(text) => setFormData({ ...formData, deadline: text })}
             />
 
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: 10
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={{ padding: 12 }}
-              >
-                <Text style={{ color: 'red', fontWeight: 'bold' }}>
-                  Cancelar
-                </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, marginBottom: 15, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee' }}>
+              <View>
+                <Text style={{ fontWeight: 'bold', color: '#333' }}>Votação Privada?</Text>
+                <Text style={{ fontSize: 12, color: '#777' }}>Condóminos votam mas não veem parciais/gráficos.</Text>
+              </View>
+              <Switch
+                trackColor={{ false: '#767577', true: '#ea4335' }}
+                thumbColor={formData.is_private ? '#fff' : '#f4f3f4'}
+                value={formData.is_private}
+                onValueChange={(value) => setFormData({ ...formData, is_private: value })}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 12 }}>
+                <Text style={{ color: 'red', fontWeight: 'bold' }}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleSaveVotacao}
                 disabled={isSaving}
-                style={{
-                  backgroundColor: isSaving ? '#999' : '#0052FF',
-                  padding: 12,
-                  borderRadius: 8,
-                  paddingHorizontal: 25,
-                  minWidth: 100,
-                  alignItems: 'center'
-                }}
+                style={{ backgroundColor: isSaving ? '#999' : '#0052FF', padding: 12, borderRadius: 8, paddingHorizontal: 25, minWidth: 100, alignItems: 'center' }}
               >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                    Salvar
-                  </Text>
-                )}
+                {isSaving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Salvar</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -579,12 +555,7 @@ type StatItemProps = {
 
 const StatItem = ({ label, value, color }: StatItemProps) => (
   <View style={globalStyles.centerItems}>
-    <Text style={[globalStyles.voteStatValue, { color }]}>
-      {value}
-    </Text>
-
-    <Text style={globalStyles.voteStatLabel}>
-      {label}
-    </Text>
+    <Text style={[globalStyles.voteStatValue, { color }]}>{value}</Text>
+    <Text style={globalStyles.voteStatLabel}>{label}</Text>
   </View>
 );

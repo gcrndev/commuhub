@@ -43,19 +43,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50, // Ajusta se a barra de estado sobrepor
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0052FF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#111827',
+    color: '#eee8e8',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#cacdd2',
     marginTop: 2,
   },
   iconButton: {

@@ -14,6 +14,7 @@ export type Votacao = {
     abstencao: number;
   };
   totalVoters: number;
+  is_private: boolean;
 };
 
 export type Documento = {

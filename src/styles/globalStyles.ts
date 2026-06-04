@@ -26,11 +26,9 @@ export const globalStyles = StyleSheet.create({
   // Arredondamento branco que sobrepõe o azul
   mainContent: {
     flex: 1,
-    marginTop: -20,
     backgroundColor: '#F8F9FA',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     paddingHorizontal: 20,
+    paddingTop: 10,
   },
   // Barra de Pesquisa
   searchBarContainer: {
@@ -242,6 +240,15 @@ export const globalStyles = StyleSheet.create({
   voteRejectButton: {
     alignItems: 'center',
     backgroundColor: '#e74c3c',
+    borderRadius: 8,
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 12,
+  },
+    voteAbstention: {
+    alignItems: 'center',
+    backgroundColor: '#797574',
     borderRadius: 8,
     flex: 1,
     flexDirection: 'row',
