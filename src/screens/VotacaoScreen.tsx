@@ -23,13 +23,14 @@ import {
   Edit2,
   HelpCircle,
   Lock, 
-  Eye,  
+  Eye,
+  Trash2,
 } from 'react-native-feather';
 
 import Svg, { Circle, G } from 'react-native-svg';
 
 import AppHeader from '../components/AppHeader';
-import { getVotacoes } from '../services/communityService';
+import { getVotacoes, deleteVotacao } from '../services/communityService';
 import { colors } from '../styles/colors';
 import { globalStyles } from '../styles/globalStyles';
 import { useAuth } from '../context/AuthContext';
@@ -161,6 +162,29 @@ export default function VotacaoScreen() {
       is_private: votacao.is_private || false,
     });
     setModalVisible(true);
+  };
+
+  const handleDeleteVotacao = (votacao: Votacao) => {
+    Alert.alert(
+      'Eliminar Votação',
+      `Tens a certeza que queres eliminar "${votacao.title}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteVotacao(votacao.id);
+              setVotacoes(prev => prev.filter(v => v.id !== votacao.id));
+              Alert.alert('Sucesso', 'Votação eliminada.');
+            } catch (e: any) {
+              Alert.alert('Erro', 'Falha ao eliminar: ' + e.message);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleSaveVotacao = async () => {
@@ -369,12 +393,20 @@ export default function VotacaoScreen() {
                         </View>
 
                         {isAdmin && (
-                          <TouchableOpacity 
-                            onPress={() => handleOpenEdit(item)}
-                            style={{ padding: 6, backgroundColor: '#EEF2FF', borderRadius: 8, marginLeft: 8 }}
-                          >
-                            <Edit2 stroke={colors.primary} width={16} height={16} />
-                          </TouchableOpacity>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                            <TouchableOpacity 
+                              onPress={() => handleOpenEdit(item)}
+                              style={{ padding: 6, backgroundColor: '#EEF2FF', borderRadius: 8 }}
+                            >
+                              <Edit2 stroke={colors.primary} width={16} height={16} />
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              onPress={() => handleDeleteVotacao(item)}
+                              style={{ padding: 6, backgroundColor: '#FEE2E2', borderRadius: 8 }}
+                            >
+                              <Trash2 stroke="#dc2626" width={16} height={16} />
+                            </TouchableOpacity>
+                          </View>
                         )}
                       </View>
 

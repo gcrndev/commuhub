@@ -6,15 +6,16 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Modal, // <-- NOVO
-  TextInput, // <-- NOVO
+  Modal,
+  TextInput,
   Image,
 } from 'react-native';
+import { openCalendarWithEvent } from '../services/calendarModule';
 
 import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react-native';
 
 import AppHeader from '../components/AppHeader';
-import { getEventos } from '../services/communityService';
+import { getEventos, deleteEvento } from '../services/communityService';
 import { colors } from '../styles/colors';
 import { globalStyles } from '../styles/globalStyles';
 import type { Evento } from '../types/models';
@@ -100,6 +101,19 @@ export default function CalendarioScreen() {
     return days;
   };
 
+  const getDaysInWeek = (date: Date | null) => {
+    if (!date) return [];
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - date.getDay());
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  };
+
   const getEventsForDate = (date: Date | null) => {
     if (!date) return [];
 
@@ -115,18 +129,30 @@ export default function CalendarioScreen() {
   };
 
   const previousMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
-    );
+    if (view === 'week') {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() - 7);
+      setCurrentDate(d);
+    } else {
+      setCurrentDate(
+        new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
+      );
+    }
   };
 
   const nextMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
-    );
+    if (view === 'week') {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() + 7);
+      setCurrentDate(d);
+    } else {
+      setCurrentDate(
+        new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+      );
+    }
   };
 
-  const days = getDaysInMonth(currentDate);
+  const days = view === 'week' ? getDaysInWeek(currentDate) : getDaysInMonth(currentDate);
   const today = new Date();
 
   const handleDatePress = (date: Date | null) => {
@@ -219,6 +245,34 @@ export default function CalendarioScreen() {
     }
   };
 
+  const addToNativeCalendar = (evento: Evento) => {
+    openCalendarWithEvent(evento);
+  };
+
+  const handleDeleteEvento = (evento: Evento) => {
+    Alert.alert(
+      'Eliminar Evento',
+      `Tens a certeza que queres eliminar "${evento.title}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteEvento(evento.id);
+              setEventos(prev => prev.filter(e => e.id !== evento.id));
+              setSelectedEventInfo(null);
+              Alert.alert('Sucesso', 'Evento eliminado.');
+            } catch (e: any) {
+              Alert.alert('Erro', 'Falha ao eliminar: ' + e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const displayedEvents = selectedDate
     ? getEventsForDate(selectedDate)
     : eventos;
@@ -275,7 +329,9 @@ export default function CalendarioScreen() {
             </TouchableOpacity>
 
             <Text style={globalStyles.calendarMonthTitle}>
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+              {view === 'week' && days.length === 7
+                ? `${days[0]!.getDate()} ${monthNames[days[0]!.getMonth()]} - ${days[6]!.getDate()} ${monthNames[days[6]!.getMonth()]} ${days[6]!.getFullYear()}`
+                : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
             </Text>
 
             <TouchableOpacity
@@ -480,6 +536,103 @@ export default function CalendarioScreen() {
         </View>
       </ScrollView>
 
+      {/* --- MODAL DE ADMIN: CRIAR NOVO EVENTO --- */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', padding: 25 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 15, padding: 20, elevation: 10 }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e293b', marginBottom: 20 }}>
+              Criar Novo Evento
+            </Text>
+
+            <TextInput
+              placeholder="Título do evento"
+              placeholderTextColor="#94a3b8"
+              value={formData.title}
+              onChangeText={text => setFormData(prev => ({ ...prev, title: text }))}
+              style={{
+                borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12,
+                fontSize: 15, color: '#1e293b', marginBottom: 12, backgroundColor: '#f8fafc',
+              }}
+            />
+
+            <TextInput
+              placeholder="Data (AAAA-MM-DD)"
+              placeholderTextColor="#94a3b8"
+              value={formData.date}
+              onChangeText={text => setFormData(prev => ({ ...prev, date: text }))}
+              style={{
+                borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12,
+                fontSize: 15, color: '#1e293b', marginBottom: 12, backgroundColor: '#f8fafc',
+              }}
+            />
+
+            <TextInput
+              placeholder="Hora (ex: 14:30)"
+              placeholderTextColor="#94a3b8"
+              value={formData.time}
+              onChangeText={text => setFormData(prev => ({ ...prev, time: text }))}
+              style={{
+                borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12,
+                fontSize: 15, color: '#1e293b', marginBottom: 12, backgroundColor: '#f8fafc',
+              }}
+            />
+
+            <TextInput
+              placeholder="Local"
+              placeholderTextColor="#94a3b8"
+              value={formData.location}
+              onChangeText={text => setFormData(prev => ({ ...prev, location: text }))}
+              style={{
+                borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12,
+                fontSize: 15, color: '#1e293b', marginBottom: 12, backgroundColor: '#f8fafc',
+              }}
+            />
+
+            <TextInput
+              placeholder="Descrição (opcional)"
+              placeholderTextColor="#94a3b8"
+              value={formData.description}
+              onChangeText={text => setFormData(prev => ({ ...prev, description: text }))}
+              multiline
+              numberOfLines={3}
+              style={{
+                borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12,
+                fontSize: 15, color: '#1e293b', marginBottom: 20, backgroundColor: '#f8fafc',
+                minHeight: 80, textAlignVertical: 'top',
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={handleSaveEvent}
+              disabled={isSaving}
+              style={{
+                backgroundColor: colors.primary, padding: 14, borderRadius: 10,
+                alignItems: 'center', marginBottom: 10, opacity: isSaving ? 0.6 : 1,
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                {isSaving ? 'A guardar...' : 'Guardar Evento'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              disabled={isSaving}
+              style={{ padding: 14, borderRadius: 10, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#64748b', fontWeight: '600', fontSize: 16 }}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* --- FIM DO MODAL ADMIN --- */}
       
 {/* --- INÍCIO DO MODAL DE DETALHES DO EVENTO --- */}
       <Modal 
@@ -515,6 +668,42 @@ export default function CalendarioScreen() {
               <Text style={{ fontSize: 15, color: '#475569', lineHeight: 22, marginBottom: 25 }}>
                 {selectedEventInfo?.description || "Nenhuma descrição fornecida para este evento."}
               </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (selectedEventInfo) addToNativeCalendar(selectedEventInfo);
+                }}
+                style={{
+                  backgroundColor: '#ffffff',
+                  padding: 14,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  borderColor: '#0052FF',
+                  borderWidth: 2,
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ color: '#0052FF', fontWeight: 'bold', fontSize: 16 }}>
+                  + Adicionar ao Calendário
+                </Text>
+              </TouchableOpacity>
+
+              {isAdmin && selectedEventInfo && (
+                <TouchableOpacity
+                  onPress={() => handleDeleteEvento(selectedEventInfo)}
+                  style={{
+                    backgroundColor: '#dc2626',
+                    padding: 14,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                    Eliminar Evento
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity 
                 onPress={() => setSelectedEventInfo(null)}

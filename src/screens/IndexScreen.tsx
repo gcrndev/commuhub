@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Vote, Clock, X, MapPin, Calendar, FileText } from 'lucide-react-native';
 
@@ -35,31 +35,42 @@ export default function IndexScreen() {
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [eventosData, votacoesData, documentosData] = await Promise.all([
-          getEventos(),
-          getVotacoes(),
-          getDocumentos(),
-        ]);
-        setEventos(eventosData);
-        setVotacoes(votacoesData);
-        setDocumentos(documentosData);
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
 
-        if (user) {
-          const notifs = await getNotifications(user.id);
-          setNotificacoes(notifs);
+      async function loadData() {
+        try {
+          setLoading(true);
+          const [eventosData, votacoesData, documentosData] = await Promise.all([
+            getEventos(),
+            getVotacoes(),
+            getDocumentos(),
+          ]);
+          if (!isMounted) return;
+          setEventos(eventosData);
+          setVotacoes(votacoesData);
+          setDocumentos(documentosData);
+
+          if (user) {
+            const notifs = await getNotifications(user.id);
+            if (!isMounted) return;
+            setNotificacoes(notifs);
+          }
+        } catch (e) {
+          console.log(e);
+        } finally {
+          if (isMounted) setLoading(false);
         }
-      } catch (e) {
-        console.log(e);
-      } finally {
-        setLoading(false);
       }
-    }
-    loadData();
-  }, [user]);
+
+      loadData();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [user]),
+  );
 
   const proximosEventos = [...eventos]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())

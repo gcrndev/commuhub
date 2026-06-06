@@ -348,32 +348,34 @@ export const globalStyles = StyleSheet.create({
   documentInfo: {
     flex: 1,
     marginLeft: 15,
+    marginRight: 10,
   },
 
   documentTitle: {
     color: '#333333',
     fontSize: 15,
     fontWeight: '600',
+    flexShrink: 1,
   },
 
-  documentMetaRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
+  documentDate: {
+    color: '#999999',
+    fontSize: 12,
     marginTop: 4,
   },
 
   categoryBadge: {
     backgroundColor: '#F0F0F0',
     borderRadius: 4,
-    color: '#666666',
-    fontSize: 11,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    marginTop: 6,
   },
 
-  documentMeta: {
-    color: '#999999',
-    fontSize: 12,
-    marginLeft: 8,
+  categoryBadgeText: {
+    color: '#666666',
+    fontSize: 11,
   },
 
   // =============== calendario

@@ -31,10 +31,10 @@ const CATEGORIAS_OPCOES = [
   'Apólices de seguro'
 ];
 
-import { Download, FileText, Search } from 'react-native-feather';
+import { Download, FileText, Search, Trash2 } from 'react-native-feather';
 
 import AppHeader from '../components/AppHeader';
-import { getDocumentos } from '../services/communityService';
+import { getDocumentos, deleteDocumento } from '../services/communityService';
 
 import { colors } from '../styles/colors';
 import { globalStyles } from '../styles/globalStyles';
@@ -225,6 +225,29 @@ async function loadDocumentos() {
   };
   // --- FIM DAS FUNÇÕES DE UPLOAD ---
 
+  const handleDeleteDocumento = (doc: Documento) => {
+    Alert.alert(
+      'Eliminar Documento',
+      `Tens a certeza que queres eliminar "${doc.title}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDocumento(doc.id);
+              setDocumentos(prev => prev.filter(d => d.id !== doc.id));
+              Alert.alert('Sucesso', 'Documento eliminado.');
+            } catch (e: any) {
+              Alert.alert('Erro', 'Falha ao eliminar: ' + e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={globalStyles.safeArea}>
       <AppHeader
@@ -330,25 +353,29 @@ async function loadDocumentos() {
                 </View>
 
                 <View style={globalStyles.documentInfo}>
-                  <Text style={globalStyles.documentTitle}>{item.title}</Text>
-
-                  <View style={globalStyles.documentMetaRow}>
-                    <Text style={globalStyles.categoryBadge}>
-                      {item.category}
-                    </Text>
-
-                    <Text style={globalStyles.documentMeta}>
-                      {item.date} • {item.size}
-                    </Text>
+                  <Text style={globalStyles.documentTitle} numberOfLines={2} ellipsizeMode="tail">{item.title}</Text>
+                  <View style={globalStyles.categoryBadge}>
+                    <Text style={globalStyles.categoryBadgeText}>{item.category}</Text>
                   </View>
+                  <Text style={globalStyles.documentDate}>{item.date} • {item.size}</Text>
                 </View>
 
-                <TouchableOpacity
-                  style={globalStyles.downloadBtn}
-                  onPress={() => handleOpenDocument(item.filePath)}
-                >
-                  <Download stroke="#FFF" width={20} height={20} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {user?.type === 'admin' && (
+                    <TouchableOpacity
+                      style={[globalStyles.downloadBtn, { backgroundColor: '#dc2626' }]}
+                      onPress={() => handleDeleteDocumento(item)}
+                    >
+                      <Trash2 stroke="#FFF" width={20} height={20} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={globalStyles.downloadBtn}
+                    onPress={() => handleOpenDocument(item.filePath)}
+                  >
+                    <Download stroke="#FFF" width={20} height={20} />
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           />

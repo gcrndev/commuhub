@@ -155,3 +155,27 @@ export async function markNotificationsRead(userId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+export async function deleteEvento(id: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase.from('eventos').delete().eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteVotacao(id: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase.from('votacoes').delete().eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteDocumento(id: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase.from('documentos').delete().eq('id', id);
+
+  if (error) throw error;
+}
