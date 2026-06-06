@@ -239,22 +239,28 @@ export default function CalendarioScreen() {
         {isAdmin && (
           <TouchableOpacity
             style={{
-              backgroundColor: '#28a745',
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 15,
+              backgroundColor: colors.primary,
+              paddingVertical: 14,
+              borderRadius: 12,
+              marginBottom: 20,
               marginTop: 20,
+              alignItems: 'center',
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 3,
             }}
             onPress={() => setModalVisible(true)}
           >
             <Text
               style={{
-                color: 'white',
-                textAlign: 'center',
-                fontWeight: 'bold',
+                color: '#FFFFFF',
+                fontWeight: '700',
+                fontSize: 15,
               }}
             >
-              + CRIAR NOVO EVENTO
+              + Criar Novo Evento
             </Text>
           </TouchableOpacity>
         )}

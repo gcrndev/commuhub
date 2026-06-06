@@ -248,30 +248,34 @@ async function loadDocumentos() {
         {/* --- INÍCIO DO BLOCO DE TESTE DE PERMISSÕES --- */}
         <View
           style={{
-            marginVertical: 10,
-            padding: 10,
-            borderRadius: 8,
+            marginBottom: 8,
           }}
         >
-          
 
           {user?.type === 'admin' && (
             <TouchableOpacity
               style={{
-                backgroundColor: '#28a745',
-                padding: 12,
-                borderRadius: 8,
+                backgroundColor: colors.primary,
+                paddingVertical: 12,
+                borderRadius: 12,
+                marginBottom: 8,
+                alignItems: 'center',
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+                elevation: 3,
               }}
-              onPress={() => setModalVisible(true)} // <-- AQUI MUDEI PARA ABRIR O MODAL
+              onPress={() => setModalVisible(true)}
             >
               <Text
                 style={{
-                  color: 'white',
-                  textAlign: 'center',
-                  fontWeight: 'bold',
+                  color: '#FFFFFF',
+                  fontWeight: '700',
+                  fontSize: 15,
                 }}
               >
-                + ADICIONAR DOCUMENTO
+                + Adicionar Documento
               </Text>
             </TouchableOpacity>
           )}
@@ -435,32 +439,40 @@ async function loadDocumentos() {
             </TouchableOpacity>
 
             {isUploading ? (
-              <ActivityIndicator size="large" color="#0052FF" />
+              <ActivityIndicator size="large" color={colors.primary} />
             ) : (
               <View
                 style={{
                   flexDirection: 'row',
-                  justifyContent: 'space-between',
+                  justifyContent: 'flex-end',
+                  gap: 12,
+                  marginTop: 10,
                 }}
               >
                 <TouchableOpacity
                   onPress={() => setModalVisible(false)}
-                  style={{ padding: 10 }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' }}
                 >
-                  <Text style={{ color: 'red', fontWeight: 'bold' }}>
+                  <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 15 }}>
                     Cancelar
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleUploadSubmit}
                   style={{
-                    backgroundColor: '#0052FF',
-                    padding: 10,
-                    borderRadius: 5,
-                    paddingHorizontal: 20,
+                    backgroundColor: colors.primary,
+                    paddingVertical: 12,
+                    paddingHorizontal: 25,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    shadowColor: colors.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    elevation: 3,
                   }}
                 >
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
                     Guardar
                   </Text>
                 </TouchableOpacity>

@@ -37,3 +37,13 @@ export type Evento = {
   location: string;
   description?: string;
 };
+
+export type Notification = {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+  createdAt: string;
+  read: boolean;
+};

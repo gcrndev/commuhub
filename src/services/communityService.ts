@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '../lib/supabase';
 //import type { Documento, Evento, Votacao, VotacaoStatus } from '../types/models';
-import type { Evento, Votacao, VotacaoStatus } from '../types/models';
+import type { Evento, Votacao, VotacaoStatus, Notification } from '../types/models';
 
 type VotacaoRow = {
   id: string | number;
@@ -116,4 +116,42 @@ export async function getEventos(): Promise<Evento[]> {
     time: row.time.slice(0, 5),
     location: row.location,
   }));
+}
+
+type NotificationRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+  created_at: string;
+  read: boolean;
+};
+
+export async function getNotifications(userId: string): Promise<Notification[]> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .rpc('get_notifications', { p_user_id: userId });
+
+  if (error) throw error;
+
+  return ((data ?? []) as NotificationRow[]).map(row => ({
+    id: row.id,
+    userId: row.user_id,
+    title: row.title,
+    body: row.body,
+    data: row.data,
+    createdAt: row.created_at,
+    read: row.read,
+  }));
+}
+
+export async function markNotificationsRead(userId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .rpc('mark_notifications_read', { p_user_id: userId });
+
+  if (error) throw error;
 }

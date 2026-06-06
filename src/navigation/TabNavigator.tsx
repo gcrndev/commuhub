@@ -15,7 +15,7 @@ import { tabBarStyles } from '../styles/tabBarStyles';
 
 export type RootTabParamList = {
   Inicio: undefined;
-  Votacoes: undefined;
+  Votacoes: { highlightVoteId?: string } | undefined;
   Docs: undefined;
   Agenda: undefined;
   Perfil: undefined;

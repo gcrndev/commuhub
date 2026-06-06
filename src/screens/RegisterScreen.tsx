@@ -14,6 +14,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 
 import { globalStyles } from '../styles/globalStyles';
@@ -95,7 +97,15 @@ export default function RegisterScreen({ navigation }: any) {
     <SafeAreaView style={globalStyles.loginSafeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 30 }}
+        >
         
         {/* LOGO */}
         <View style={{ alignItems: 'center', marginTop: 90, marginBottom: 5 }}>
@@ -225,7 +235,8 @@ export default function RegisterScreen({ navigation }: any) {
           </Text>
         </TouchableOpacity>
 
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

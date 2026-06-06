@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,8 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+
+import { useRoute } from '@react-navigation/native';
 
 import { getSupabaseClient } from '../lib/supabase';
 
@@ -56,6 +58,10 @@ export default function VotacaoScreen() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+
+  const flatListRef = useRef<FlatList>(null);
+  const route = useRoute();
+  const highlightVoteId = (route.params as any)?.highlightVoteId;
 
   useEffect(() => {
     let isMounted = true;
@@ -240,11 +246,25 @@ export default function VotacaoScreen() {
     }
   };
 
-  // Filtra as votações APENAS pelo estado da Tab ('active', 'closed', 'all').
+  // Filtra as votações APENAS pelo estado da Tab ('active', 'closed', 'voted', 'notvoted', 'all').
   // Todos os utilizadores conseguem ver a listagem.
-  const filteredVotacoes = votacoes.filter(
-    v => filter === 'all' || v.status === filter,
-  );
+  const filteredVotacoes = votacoes.filter(v => {
+    if (filter === 'all') return true;
+    if (filter === 'voted') return v.userVoted;
+    if (filter === 'notvoted') return !v.userVoted;
+    return v.status === filter;
+  });
+
+  useEffect(() => {
+    if (highlightVoteId && filteredVotacoes.length > 0) {
+      const item = filteredVotacoes.find(v => v.id === highlightVoteId);
+      if (item) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToItem({ item, animated: true, viewPosition: 0 });
+        }, 500);
+      }
+    }
+  }, [highlightVoteId, filteredVotacoes]);
 
   return (
     <View style={globalStyles.safeArea}>
@@ -256,7 +276,7 @@ export default function VotacaoScreen() {
       <View style={globalStyles.mainContent}>
         <View style={globalStyles.filterWrapper}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {['active', 'closed', 'all'].map(f => (
+            {['active', 'notvoted', 'voted', 'closed', 'all'].map(f => (
               <TouchableOpacity
                 key={f}
                 onPress={() => setFilter(f)}
@@ -271,7 +291,7 @@ export default function VotacaoScreen() {
                     filter === f && globalStyles.categoryTextActive,
                   ]}
                 >
-                  {f === 'active' ? 'Ativas' : f === 'closed' ? 'Encerradas' : 'Todas'}
+                  {f === 'active' ? 'Ativas' : f === 'closed' ? 'Encerradas' : f === 'voted' ? 'Votadas' : f === 'notvoted' ? 'Por votar' : 'Todas'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -281,15 +301,21 @@ export default function VotacaoScreen() {
         {isAdmin && (
           <TouchableOpacity
             style={{
-              backgroundColor: '#28a745',
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 15,
+              backgroundColor: colors.primary,
+              paddingVertical: 14,
+              borderRadius: 12,
+              marginBottom: 20,
+              alignItems: 'center',
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 3,
             }}
             onPress={handleOpenAdd}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-              + CRIAR NOVA VOTAÇÃO
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
+              + Criar Nova Votação
             </Text>
           </TouchableOpacity>
         )}
@@ -300,6 +326,7 @@ export default function VotacaoScreen() {
           <Text style={globalStyles.centeredEmptyText}>{error}</Text>
         ) : (
           <FlatList
+            ref={flatListRef}
             data={filteredVotacoes}
             keyExtractor={item => item.id}
             contentContainerStyle={globalStyles.listBottomSpacing}
@@ -344,9 +371,9 @@ export default function VotacaoScreen() {
                         {isAdmin && (
                           <TouchableOpacity 
                             onPress={() => handleOpenEdit(item)}
-                            style={{ padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, marginLeft: 5 }}
+                            style={{ padding: 6, backgroundColor: '#EEF2FF', borderRadius: 8, marginLeft: 8 }}
                           >
-                            <Edit2 stroke="#0052FF" width={18} height={18} />
+                            <Edit2 stroke={colors.primary} width={16} height={16} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -527,17 +554,17 @@ export default function VotacaoScreen() {
               />
             </View>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 12 }}>
-                <Text style={{ color: 'red', fontWeight: 'bold' }}>Cancelar</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 15 }}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleSaveVotacao}
                 disabled={isSaving}
-                style={{ backgroundColor: isSaving ? '#999' : '#0052FF', padding: 12, borderRadius: 8, paddingHorizontal: 25, minWidth: 100, alignItems: 'center' }}
+                style={{ backgroundColor: isSaving ? '#9CA3AF' : colors.primary, paddingVertical: 12, paddingHorizontal: 25, borderRadius: 12, minWidth: 100, alignItems: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 }}
               >
-                {isSaving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Salvar</Text>}
+                {isSaving ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Salvar</Text>}
               </TouchableOpacity>
             </View>
           </View>

@@ -12,6 +12,9 @@ import {
   StatusBar,
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 
 import { globalStyles } from '../styles/globalStyles';
@@ -83,8 +86,17 @@ export default function LoginScreen({ navigation }: any) {
     <SafeAreaView style={globalStyles.loginSafeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      {/* LOGO */}
-      <View style={{ alignItems: 'center', marginTop: 90, marginBottom: 5 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          {/* LOGO */}
+          <View style={{ alignItems: 'center', marginTop: 90, marginBottom: 5 }}>
         <Image
           source={Logo}
           style={{
@@ -206,6 +218,8 @@ export default function LoginScreen({ navigation }: any) {
           </Text>
         </Text>
       </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
