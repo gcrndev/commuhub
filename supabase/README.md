@@ -150,8 +150,16 @@ Fluxo:
 6. A Edge Function procura `profiles.fcm_token` do utilizador da notificacao.
 7. Se existir token, envia para Firebase Cloud Messaging e preenche `sent_at`.
 8. Se nao existir token, grava `send_error = 'User has no FCM token'`.
+9. Se as preferencias do Perfil bloquearem aquela categoria, grava `send_error`
+   com `Skipped: ...` e nao envia.
 
-Nota: os switches de preferencias do Perfil continuam no app, mas a Edge Function nao usa `push_enabled`, `notify_documentos`, `notify_votacoes` ou `notify_eventos` para bloquear envio. Regra atual: todos os utilizadores com `fcm_token` valido recebem.
+Nota: os switches de preferencias do Perfil estao ligados a `public.profiles` e
+controlam o envio real:
+
+- `push_enabled = false`: nao recebe nenhuma push.
+- `notify_documentos = false`: nao recebe uploads/documentos.
+- `notify_votacoes = false`: nao recebe votacoes.
+- `notify_eventos = false`: nao recebe eventos.
 
 ### Formato da notificacao
 

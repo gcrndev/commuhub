@@ -10,7 +10,6 @@ import {
 
 import {
   User,
-  Mail,
   Shield,
   Bell,
   LogOut,
