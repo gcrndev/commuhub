@@ -30,7 +30,7 @@ import {
 import Svg, { Circle, G } from 'react-native-svg';
 
 import AppHeader from '../components/AppHeader';
-import { getVotacoes, deleteVotacao } from '../services/communityService';
+import { getVotacoes, deleteVotacao, votarEmVotacao } from '../services/communityService';
 import { colors } from '../styles/colors';
 import { globalStyles } from '../styles/globalStyles';
 import { useAuth } from '../context/AuthContext';
@@ -72,7 +72,7 @@ export default function VotacaoScreen() {
         setLoading(true);
         setError(null);
 
-        const data = await getVotacoes();
+        const data = await getVotacoes(user?.id);
 
         if (isMounted) {
           setVotacoes(data);
@@ -95,48 +95,35 @@ export default function VotacaoScreen() {
     };
   }, []);
 
-  // --- FUNÇÃO PARA COMPUTAR O VOTO NO SUPABASE E NA UI ---
+  // --- FUNÇÃO PARA COMPUTAR O VOTO VIA RPC (ATÓMICO, SEM DUPLICADOS) ---
   const handleVote = async (votacaoId: string, opcao: 'sim' | 'nao' | 'abs') => {
+    if (!user) {
+      Alert.alert('Erro', 'Precisas de estar autenticado para votar.');
+      return;
+    }
+
     try {
-      const supabase = getSupabaseClient();
-      
-      let colunaSupabase = 'votes_sim';
-      if (opcao === 'nao') colunaSupabase = 'votes_nao';
-      if (opcao === 'abs') colunaSupabase = 'votes_abstencao';
+      const result = await votarEmVotacao(user.id, votacaoId, opcao);
+
+      if (!result.success) {
+        Alert.alert('Aviso', result.error || 'Não foi possível registar o voto.');
+        return;
+      }
 
       const chaveEstado = opcao === 'abs' ? 'abstencao' : opcao;
 
-      const votacaoAtual = votacoes.find(v => v.id === votacaoId);
-      if (!votacaoAtual) return;
-
-      const novoValorVoto = (votacaoAtual.votes[chaveEstado] || 0) + 1;
-      const novoTotalVoters = (votacaoAtual.totalVoters || 0) + 1;
-
-      const { error } = await supabase
-        .from('votacoes')
-        .update({ 
-          [colunaSupabase]: novoValorVoto,
-          total_voters: novoTotalVoters
-        })
-        .eq('id', votacaoId);
-
-      if (error) throw error;
-
       setVotacoes(prevVotacoes =>
-        prevVotacoes.map(v => {
-          if (v.id === votacaoId) {
-            return {
-              ...v,
-              userVoted: true,
-              totalVoters: novoTotalVoters,
-              votes: {
-                ...v.votes,
-                [chaveEstado]: novoValorVoto
+        prevVotacoes.map(v =>
+          v.id === votacaoId
+            ? {
+                ...v,
+                userVoted: true,
+                userVote: opcao,
+                totalVoters: v.totalVoters + 1,
+                votes: { ...v.votes, [chaveEstado]: v.votes[chaveEstado] + 1 },
               }
-            };
-          }
-          return v;
-        })
+            : v
+        )
       );
 
       Alert.alert('Sucesso', 'O teu voto foi contabilizado!');
@@ -234,7 +221,6 @@ export default function VotacaoScreen() {
             description: formData.description,
             deadline: formData.deadline,
             status: 'active',
-            user_voted: false,
             votes_sim: 0,
             votes_nao: 0,
             votes_abstencao: 0,
@@ -259,7 +245,7 @@ export default function VotacaoScreen() {
 
         setVotacoes([novaVotacao, ...votacoes]);
         Alert.alert('Sucesso', 'Nova votação criada!');
-      }  
+      }
 
       setModalVisible(false);
     } catch (err: any) {

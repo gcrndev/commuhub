@@ -1,5 +1,4 @@
 import { getSupabaseClient } from '../lib/supabase';
-//import type { Documento, Evento, Votacao, VotacaoStatus } from '../types/models';
 import type { Evento, Votacao, VotacaoStatus, Notification } from '../types/models';
 
 type VotacaoRow = {
@@ -37,28 +36,48 @@ type EventoRow = {
   location: string;
 };
 
-export async function getVotacoes(): Promise<Votacao[]> {
+export async function getVotacoes(userId?: string): Promise<Votacao[]> {
   const supabase = getSupabaseClient();
+
+  if (userId) {
+    const { data, error } = await supabase
+      .rpc('get_votacoes_with_user_vote', { p_user_id: userId });
+
+    if (error) throw error;
+
+    return ((data ?? []) as VotacaoRow[]).map(row => ({
+      id: String(row.id),
+      title: row.title,
+      description: row.description,
+      deadline: row.deadline,
+      status: row.status,
+      userVoted: row.user_voted ?? false,
+      userVote: row.user_vote ?? null,
+      votes: {
+        sim: row.votes_sim,
+        nao: row.votes_nao,
+        abstencao: row.votes_abstencao,
+      },
+      totalVoters: row.total_voters,
+      is_private: row.is_private ?? false,
+    }));
+  }
 
   const { data, error } = await supabase
     .from('votacoes')
-    .select(
-      'id,title,description,deadline,status,user_voted,user_vote,votes_sim,votes_nao,votes_abstencao,total_voters,is_private',
-    )
+    .select('id,title,description,deadline,status,votes_sim,votes_nao,votes_abstencao,total_voters,is_private')
     .order('id', { ascending: true });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  return ((data ?? []) as VotacaoRow[]).map(row => ({
+  return ((data ?? []) as any[]).map(row => ({
     id: String(row.id),
     title: row.title,
     description: row.description,
     deadline: row.deadline,
     status: row.status,
-    userVoted: row.user_voted,
-    userVote: row.user_vote,
+    userVoted: false,
+    userVote: null,
     votes: {
       sim: row.votes_sim,
       nao: row.votes_nao,
@@ -67,6 +86,29 @@ export async function getVotacoes(): Promise<Votacao[]> {
     totalVoters: row.total_voters,
     is_private: row.is_private ?? false,
   }));
+}
+
+export async function votarEmVotacao(
+  userId: string,
+  votacaoId: string,
+  opcao: 'sim' | 'nao' | 'abs'
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .rpc('votar', {
+      p_user_id: userId,
+      p_votacao_id: votacaoId,
+      p_voto: opcao,
+    });
+
+  if (error) throw error;
+
+  const result = data as { success?: boolean; error?: string };
+  return {
+    success: result?.success === true,
+    error: result?.error,
+  };
 }
 
 export async function getDocumentos(): Promise<any[]> {

@@ -44,7 +44,7 @@ export default function IndexScreen() {
           setLoading(true);
           const [eventosData, votacoesData, documentosData] = await Promise.all([
             getEventos(),
-            getVotacoes(),
+            getVotacoes(user?.id),
             getDocumentos(),
           ]);
           if (!isMounted) return;
@@ -199,19 +199,15 @@ export default function IndexScreen() {
               })
             )}
 
-            <View style={globalStyles.indexSectionHeaderRow}>
-              <Text style={globalStyles.indexSectionTitle}>Votações</Text>
-              {pendentes.length > 0 && (
-                <View style={globalStyles.indexVoteCountBadge}>
-                  <Text style={globalStyles.indexVoteCountText}>{pendentes.length} por votar</Text>
-                </View>
-              )}
-            </View>
-
-            {votacoesAtivas.length === 0 ? (
-              <Text style={globalStyles.indexEmptyText}>Sem votações ativas de momento.</Text>
-            ) : pendentes.length > 0 ? (
+            {pendentes.length > 0 && (
               <>
+                <View style={globalStyles.indexSectionHeaderRow}>
+                  <Text style={globalStyles.indexSectionTitle}>Votações</Text>
+                  <View style={globalStyles.indexVoteCountBadge}>
+                    <Text style={globalStyles.indexVoteCountText}>{pendentes.length} por votar</Text>
+                  </View>
+                </View>
+
                 {pendentes.slice(0, 3).map(v => {
                   return (
                     <View key={v.id} style={[globalStyles.indexCard, globalStyles.indexVoteCardStyle]}>
@@ -244,7 +240,7 @@ export default function IndexScreen() {
                   </TouchableOpacity>
                 )}
               </>
-            ) : null}
+            )}
           </>
         )}
       </ScrollView>
