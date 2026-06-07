@@ -56,7 +56,7 @@ export default function ChangePasswordScreen({ navigation }: any) {
     try {
       const supabase = getSupabaseClient();
 
-      // 2. Faz o update diretamente usando o ID do utilizador que confirmámos no teste
+      // 2. Faz o update diretamente usando o ID do utilizador 
       const { data, error } = await supabase
         .from('users')
         .update({ password: newPassword })
@@ -66,14 +66,13 @@ export default function ChangePasswordScreen({ navigation }: any) {
 
       if (error) throw error;
 
-      // 3. Se o RLS está desativado e mesmo assim não retornar dados, 
-      // significa que o user digitou a password atual errada no input.
+      // 3. verificacao password
       if (!data || data?.length === 0) {
         setErrorMessage('A palavra-passe atual está incorreta.');
         return;
       }
 
-      // Sucesso Total!
+      // Sucesso Total
       Alert.alert('Sucesso!', 'A tua palavra-passe foi alterada!', [
         { text: 'Ok', onPress: () => navigation.goBack() }
       ]);

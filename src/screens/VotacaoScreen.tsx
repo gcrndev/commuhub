@@ -376,21 +376,10 @@ export default function VotacaoScreen() {
 
         {isAdmin && (
           <TouchableOpacity
-            style={{
-              backgroundColor: colors.primary,
-              paddingVertical: 14,
-              borderRadius: 12,
-              marginBottom: 20,
-              alignItems: 'center',
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
+            style={globalStyles.votacaoCreateButton}
             onPress={handleOpenAdd}
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
+            <Text style={globalStyles.votacaoCreateButtonText}>
               + Criar Nova Votação
             </Text>
           </TouchableOpacity>
@@ -432,66 +421,23 @@ export default function VotacaoScreen() {
                 <View style={[globalStyles.docCard, globalStyles.voteCard]}>
                   <View style={globalStyles.voteHeader}>
                     <View style={globalStyles.flexOne}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          paddingRight: 10,
-                        }}
-                      >
-                        <Text style={[globalStyles.voteCardTitle, { flex: 1 }]}>
+                      <View style={globalStyles.votacaoTitleRow}>
+                        <Text style={[globalStyles.voteCardTitle, globalStyles.votacaoTitleText]}>
                           {item.title}
                         </Text>
 
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            marginRight: 5,
-                          }}
-                        >
+                        <View style={globalStyles.votacaoPrivacyBadgeRow}>
                           {item.is_private ? (
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                backgroundColor: '#ffebe9',
-                                padding: 4,
-                                borderRadius: 5,
-                              }}
-                            >
+                            <View style={globalStyles.votacaoPrivateBadge}>
                               <Lock stroke="#ea4335" width={14} height={14} />
-                              <Text
-                                style={{
-                                  color: '#ea4335',
-                                  fontSize: 10,
-                                  marginLeft: 3,
-                                  fontWeight: 'bold',
-                                }}
-                              >
+                              <Text style={globalStyles.votacaoPrivateBadgeText}>
                                 Privada
                               </Text>
                             </View>
                           ) : (
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                backgroundColor: '#e6f4ea',
-                                padding: 4,
-                                borderRadius: 5,
-                              }}
-                            >
+                            <View style={globalStyles.votacaoPublicBadge}>
                               <Eye stroke="#137333" width={14} height={14} />
-                              <Text
-                                style={{
-                                  color: '#137333',
-                                  fontSize: 10,
-                                  marginLeft: 3,
-                                  fontWeight: 'bold',
-                                }}
-                              >
+                              <Text style={globalStyles.votacaoPublicBadgeText}>
                                 Pública
                               </Text>
                             </View>
@@ -499,21 +445,10 @@ export default function VotacaoScreen() {
                         </View>
 
                         {isAdmin && (
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: 6,
-                              marginLeft: 8,
-                            }}
-                          >
+                          <View style={globalStyles.votacaoAdminRow}>
                             <TouchableOpacity
                               onPress={() => handleOpenEdit(item)}
-                              style={{
-                                padding: 6,
-                                backgroundColor: '#EEF2FF',
-                                borderRadius: 8,
-                              }}
+                              style={globalStyles.votacaoEditButton}
                             >
                               <Edit2
                                 stroke={colors.primary}
@@ -523,11 +458,7 @@ export default function VotacaoScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleDeleteVotacao(item)}
-                              style={{
-                                padding: 6,
-                                backgroundColor: '#FEE2E2',
-                                borderRadius: 8,
-                              }}
+                              style={globalStyles.votacaoDeleteButton}
                             >
                               <Trash2 stroke="#dc2626" width={16} height={16} />
                             </TouchableOpacity>
@@ -553,10 +484,7 @@ export default function VotacaoScreen() {
                         item.userVoted
                           ? globalStyles.voteStatusSuccess
                           : globalStyles.voteStatusPending,
-                        item.status === 'closed' && {
-                          backgroundColor: '#F3F4F6',
-                          borderColor: '#E5E7EB',
-                        }, // Estilo para fechada
+                        item.status === 'closed' && globalStyles.voteStatusClosed,
                       ]}
                     >
                       <Text
@@ -565,7 +493,7 @@ export default function VotacaoScreen() {
                           item.userVoted
                             ? globalStyles.voteStatusSuccessText
                             : globalStyles.voteStatusPendingText,
-                          item.status === 'closed' && { color: '#6B7280' }, // Estilo para fechada
+                          item.status === 'closed' && globalStyles.voteStatusClosedText,
                         ]}
                       >
                         {item.status === 'closed'
@@ -598,21 +526,8 @@ export default function VotacaoScreen() {
                       </View>
                     </View>
                   ) : (
-                    <View
-                      style={{
-                        paddingVertical: 8,
-                        borderTopWidth: 1,
-                        borderTopColor: '#f0f0f0',
-                        marginTop: 10,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          color: '#888',
-                          fontStyle: 'italic',
-                        }}
-                      >
+                    <View style={globalStyles.votacaoPartialsHiddenContainer}>
+                      <Text style={globalStyles.votacaoPartialsHiddenText}>
                         Parciais ocultas (Votação Privada)
                       </Text>
                     </View>
@@ -666,12 +581,7 @@ export default function VotacaoScreen() {
                     <View
                       style={[
                         globalStyles.voteDetailsButton,
-                        {
-                          backgroundColor: '#f9f9f9',
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        },
+                        globalStyles.votacaoLockedDetailsContainer,
                       ]}
                     >
                       <Lock
@@ -680,13 +590,7 @@ export default function VotacaoScreen() {
                         height={12}
                         style={{ marginRight: 5 }}
                       />
-                      <Text
-                        style={{
-                          color: '#999',
-                          fontSize: 13,
-                          fontWeight: '500',
-                        }}
-                      >
+                      <Text style={globalStyles.votacaoLockedDetailsText}>
                         Detalhes privados apenas para a gerência
                       </Text>
                     </View>
@@ -781,39 +685,15 @@ export default function VotacaoScreen() {
       </View>
 
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            padding: 20,
-          }}
-        >
-          <View
-            style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                marginBottom: 15,
-                textAlign: 'center',
-              }}
-            >
+        <View style={globalStyles.votacaoModalOverlay}>
+          <View style={globalStyles.votacaoModalCard}>
+            <Text style={globalStyles.votacaoModalTitle}>
               {editingVotacao ? 'Editar Votação' : 'Criar Nova Votação'}
             </Text>
 
             <TextInput
               placeholder="Título (ex: Pintura do Prédio)"
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginBottom: 10,
-                borderRadius: 5,
-                color: '#000',
-                backgroundColor: '#fafafa',
-              }}
+              style={globalStyles.votacaoInput}
               placeholderTextColor="#999"
               value={formData.title}
               onChangeText={text => setFormData({ ...formData, title: text })}
@@ -823,16 +703,7 @@ export default function VotacaoScreen() {
               placeholder="Descrição completa..."
               multiline
               numberOfLines={3}
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginBottom: 10,
-                borderRadius: 5,
-                color: '#000',
-                backgroundColor: '#fafafa',
-                textAlignVertical: 'top',
-              }}
+              style={[globalStyles.votacaoInput, globalStyles.votacaoInputMultiline]}
               placeholderTextColor="#999"
               value={formData.description}
               onChangeText={text =>
@@ -842,15 +713,7 @@ export default function VotacaoScreen() {
 
             <TextInput
               placeholder="Prazo (AAAA-MM-DD)"
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginBottom: 15,
-                borderRadius: 5,
-                color: '#000',
-                backgroundColor: '#fafafa',
-              }}
+              style={[globalStyles.votacaoInput, { marginBottom: 15 }]}
               placeholderTextColor="#999"
               value={formData.deadline}
               onChangeText={text =>
@@ -859,23 +722,12 @@ export default function VotacaoScreen() {
               keyboardType="numeric"
             />
 
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingVertical: 10,
-                marginBottom: 15,
-                borderTopWidth: 1,
-                borderBottomWidth: 1,
-                borderColor: '#eee',
-              }}
-            >
+            <View style={globalStyles.votacaoSwitchRow}>
               <View>
-                <Text style={{ fontWeight: 'bold', color: '#333' }}>
+                <Text style={globalStyles.votacaoSwitchLabel}>
                   Votação Privada?
                 </Text>
-                <Text style={{ fontSize: 12, color: '#777' }}>
+                <Text style={globalStyles.votacaoSwitchSublabel}>
                   Condóminos votam mas não veem parciais.
                 </Text>
               </View>
@@ -889,27 +741,12 @@ export default function VotacaoScreen() {
               />
             </View>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-end',
-                gap: 12,
-                marginTop: 10,
-              }}
-            >
+            <View style={globalStyles.votacaoModalActionsRow}>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: '#E5E7EB',
-                }}
+                style={globalStyles.votacaoCancelButton}
               >
-                <Text
-                  style={{ color: '#6B7280', fontWeight: '600', fontSize: 15 }}
-                >
+                <Text style={globalStyles.votacaoCancelButtonText}>
                   Cancelar
                 </Text>
               </TouchableOpacity>
@@ -917,30 +754,15 @@ export default function VotacaoScreen() {
               <TouchableOpacity
                 onPress={handleSaveVotacao}
                 disabled={isSaving}
-                style={{
-                  backgroundColor: isSaving ? '#9CA3AF' : colors.primary,
-                  paddingVertical: 12,
-                  paddingHorizontal: 25,
-                  borderRadius: 12,
-                  minWidth: 100,
-                  alignItems: 'center',
-                  shadowColor: colors.primary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 8,
-                  elevation: 3,
-                }}
+                style={[
+                  globalStyles.votacaoSaveButton,
+                  { backgroundColor: isSaving ? '#9CA3AF' : colors.primary },
+                ]}
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text
-                    style={{
-                      color: '#FFFFFF',
-                      fontWeight: '700',
-                      fontSize: 15,
-                    }}
-                  >
+                  <Text style={globalStyles.votacaoSaveButtonText}>
                     Salvar
                   </Text>
                 )}

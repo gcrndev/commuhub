@@ -334,6 +334,225 @@ export const globalStyles = StyleSheet.create({
     fontSize: 12,
   },
 
+  // ---- inline styles from VotacaoScreen ----
+
+  votacaoCreateButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+
+  votacaoCreateButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  votacaoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 10,
+  },
+
+  votacaoTitleText: {
+    flex: 1,
+  },
+
+  votacaoPrivacyBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 5,
+  },
+
+  votacaoPrivateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffebe9',
+    padding: 4,
+    borderRadius: 5,
+  },
+
+  votacaoPrivateBadgeText: {
+    color: '#ea4335',
+    fontSize: 10,
+    marginLeft: 3,
+    fontWeight: 'bold',
+  },
+
+  votacaoPublicBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f4ea',
+    padding: 4,
+    borderRadius: 5,
+  },
+
+  votacaoPublicBadgeText: {
+    color: '#137333',
+    fontSize: 10,
+    marginLeft: 3,
+    fontWeight: 'bold',
+  },
+
+  votacaoAdminRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 8,
+  },
+
+  votacaoEditButton: {
+    padding: 6,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+  },
+
+  votacaoDeleteButton: {
+    padding: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+  },
+
+  voteStatusClosed: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+
+  voteStatusClosedText: {
+    color: '#6B7280',
+  },
+
+  votacaoPartialsHiddenContainer: {
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginTop: 10,
+  },
+
+  votacaoPartialsHiddenText: {
+    fontSize: 12,
+    color: '#888',
+    fontStyle: 'italic',
+  },
+
+  votacaoLockedDetailsContainer: {
+    backgroundColor: '#f9f9f9',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  votacaoLockedDetailsText: {
+    color: '#999',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  // ---- Modal styles ----
+
+  votacaoModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 20,
+  },
+
+  votacaoModalCard: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+  },
+
+  votacaoModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+
+  votacaoInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+    color: '#000',
+    backgroundColor: '#fafafa',
+  },
+
+  votacaoInputMultiline: {
+    textAlignVertical: 'top',
+  },
+
+  votacaoSwitchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    marginBottom: 15,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+
+  votacaoSwitchLabel: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+
+  votacaoSwitchSublabel: {
+    fontSize: 12,
+    color: '#777',
+  },
+
+  votacaoModalActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 10,
+  },
+
+  votacaoCancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+
+  votacaoCancelButtonText: {
+    color: '#6B7280',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+
+  votacaoSaveButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    minWidth: 100,
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+
+  votacaoSaveButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
   // ============== documentos
 
   documentsCategoriesContainer: {

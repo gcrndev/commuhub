@@ -21,7 +21,7 @@ import type { RootTabParamList } from '../navigation/TabNavigator';
 
 type NavProp = BottomTabNavigationProp<RootTabParamList>;
 
-// Cor principal da tua app (substitui pelo teu HEX se for diferente)
+// Cor principal 
 const PRIMARY_COLOR = '#2563EB'; 
 
 export default function IndexScreen() {

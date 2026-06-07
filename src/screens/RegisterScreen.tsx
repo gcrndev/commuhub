@@ -29,11 +29,11 @@ export default function RegisterScreen({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
-  // Estados para alternar a visibilidade das passwords
+  // estados para alternar a visibilidade das passwords
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // A função real de Registo usando o teu novo formato .insert()
+  //  .insert()
   const handleRegister = async () => {
     if (!username || !password || !confirmPassword) {
       setErrorMessage('Preenche todos os campos.');
@@ -51,23 +51,23 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. VERIFICAÇÃO: Procura se o utilizador já existe na base de dados
+      // procura se o utilizador já existe na base de dados
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('username')
         .eq('username', username.trim())
-        .maybeSingle(); // Devolve o objeto se encontrar, ou null se não encontrar
+        .maybeSingle(); // devolve o objeto se encontrar ou null se não encontrar
 
       if (checkError) throw checkError;
 
-      // Se encontrou algum registo, interrompe o registo e mostra o aviso
+      // se encontrou algum registo interrompe o registo e mostra o aviso
       if (existingUser) {
         setErrorMessage('Este nome de utilizador já está a ser utilizado.');
         setIsLoading(false);
         return;
       }
 
-      // 2. REGISTO: Se passou no teste anterior, avança com a inserção
+      // se passou no teste anterior avança com a insercao
       const { error: insertError } = await supabase
         .from('users')
         .insert([
@@ -80,7 +80,7 @@ export default function RegisterScreen({ navigation }: any) {
 
       if (insertError) throw insertError;
 
-      // Se correu bem, avisa o utilizador e manda-o para o Login
+      // avisa o utilizador e manda o para o Login
       Alert.alert('Sucesso!', 'Conta criada com sucesso!', [
         { text: 'Ir para Login', onPress: () => navigation.navigate('Login') }
       ]);

@@ -25,12 +25,14 @@ import { getSupabaseClient } from '../lib/supabase';
 import { useRoute } from '@react-navigation/native';
 
 export default function CalendarioScreen() {
+  
   const { user } = useAuth();
+  //verifica se e admin
   const isAdmin = user?.type === 'admin';
 
+  
   const route = useRoute();
   const highlightEventId = (route.params as any)?.highlightEventId;
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [view, setView] = useState('month');
@@ -38,12 +40,14 @@ export default function CalendarioScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  //evento selecionado para ver detalhes
   const [selectedEventInfo, setSelectedEventInfo] = useState<Evento | null>(
     null,
   );
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  //dados do formulario
   const [formData, setFormData] = useState({
     title: '',
     date: '',
@@ -59,6 +63,7 @@ export default function CalendarioScreen() {
       try {
         setLoading(true);
         setError(null);
+        
         const data = await getEventos();
         if (isMounted) setEventos(data);
       } catch {
@@ -76,9 +81,12 @@ export default function CalendarioScreen() {
 
   useEffect(() => {
     if (highlightEventId && eventos.length > 0) {
+      //evento encontrado pelo id
       const event = eventos.find(e => e.id === highlightEventId);
       if (event) {
+        //divide a data em ano mes dia
         const [year, month, day] = event.date.split('-');
+        //cria objeto date do evento
         const eventDate = new Date(Number(year), Number(month) - 1, Number(day));
         setSelectedDate(eventDate);
         setSelectedEventInfo(event);
@@ -87,6 +95,7 @@ export default function CalendarioScreen() {
   }, [highlightEventId, eventos]);
 
   const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  
   const monthNames = [
     'Janeiro',
     'Fevereiro',
@@ -102,24 +111,32 @@ export default function CalendarioScreen() {
     'Dezembro',
   ];
 
+  
   const getDaysInMonth = (date: Date | null) => {
     if (!date) return [];
     const year = date.getFullYear();
     const month = date.getMonth();
+    //primeiro e ultimo dia do mes
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
+    
     const daysInMonth = lastDay.getDate();
+    
     const startingDayOfWeek = firstDay.getDay();
+    
     const days = [];
     for (let i = 0; i < startingDayOfWeek; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
     return days;
   };
 
+  
   const getDaysInWeek = (date: Date | null) => {
     if (!date) return [];
+    
     const startOfWeek = new Date(date);
     startOfWeek.setDate(date.getDate() - date.getDay());
+    
     const days = [];
     for (let i = 0; i < 7; i++) {
       const day = new Date(startOfWeek);
@@ -129,17 +146,22 @@ export default function CalendarioScreen() {
     return days;
   };
 
+  //eventos de uma data especifica
   const getEventsForDate = (date: Date | null) => {
     if (!date) return [];
+    //formata a data para aaaa-mm-dd
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    //string da data no formato da base de dados
     const dateStr = `${year}-${month}-${day}`;
     return eventos.filter(event => event.date === dateStr);
   };
 
+  //vai para o mes/semana anterior
   const previousMonth = () => {
     if (view === 'week') {
+      //volta 7 dias
       const d = new Date(currentDate);
       d.setDate(d.getDate() - 7);
       setCurrentDate(d);
@@ -150,8 +172,10 @@ export default function CalendarioScreen() {
     }
   };
 
+  //vai para o mes/semana seguinte
   const nextMonth = () => {
     if (view === 'week') {
+      //avanca 7 dias
       const d = new Date(currentDate);
       d.setDate(d.getDate() + 7);
       setCurrentDate(d);
@@ -162,12 +186,15 @@ export default function CalendarioScreen() {
     }
   };
 
+  
   const days =
     view === 'week' ? getDaysInWeek(currentDate) : getDaysInMonth(currentDate);
   const today = new Date();
 
+
   const handleDatePress = (date: Date | null) => {
     if (!date) return;
+    
     const eventsOnDate = getEventsForDate(date);
     if (eventsOnDate.length === 0) {
       Alert.alert('Sem eventos', 'Não há eventos agendados para esta data.');
@@ -181,6 +208,7 @@ export default function CalendarioScreen() {
     }
   };
 
+  //guarda um evento novo
   const handleSaveEvent = async () => {
     if (
       !formData.title ||
@@ -192,6 +220,7 @@ export default function CalendarioScreen() {
       return;
     }
 
+    //regex para validar formato aaaa-mm-dd
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(formData.date)) {
       Alert.alert(
@@ -201,13 +230,15 @@ export default function CalendarioScreen() {
       return;
     }
 
-    // --- BLOQUEIO LOGICO DE DATA PASSADA ---
+    //impede data passada
     const [yearStr, monthStr, dayStr] = formData.date.split('-');
+    //data alvo para comparar
     const targetDate = new Date(
       Number(yearStr),
       Number(monthStr) - 1,
       Number(dayStr),
     );
+    
     const todayCompare = new Date();
     todayCompare.setHours(0, 0, 0, 0);
 
@@ -218,9 +249,12 @@ export default function CalendarioScreen() {
 
     setIsSaving(true);
     try {
+      
       const supabase = getSupabaseClient();
+      
       const generatedId = new Date().getTime().toString();
 
+      
       const { data, error } = await supabase
         .from('eventos')
         .insert([
@@ -237,6 +271,7 @@ export default function CalendarioScreen() {
 
       if (error) throw error;
 
+      
       const novoEvento: Evento = {
         id: data?.[0]?.id || generatedId,
         title: formData.title,
@@ -265,10 +300,12 @@ export default function CalendarioScreen() {
     }
   };
 
+  //adiciona ao calendario nativo
   const addToNativeCalendar = (evento: Evento) => {
     openCalendarWithEvent(evento);
   };
 
+  //elimina um evento
   const handleDeleteEvento = (evento: Evento) => {
     Alert.alert(
       'Eliminar Evento',
@@ -293,6 +330,7 @@ export default function CalendarioScreen() {
     );
   };
 
+  //eventos a mostrar na lista
   const displayedEvents = selectedDate
     ? getEventsForDate(selectedDate)
     : eventos;
@@ -412,12 +450,15 @@ export default function CalendarioScreen() {
             ))}
 
             {days.map((day, index) => {
+              //se tem eventos nesse dia
               const hasEvents = day && getEventsForDate(day).length > 0;
+              //se e o dia de hoje
               const isToday =
                 day &&
                 day.getDate() === today.getDate() &&
                 day.getMonth() === today.getMonth() &&
                 day.getFullYear() === today.getFullYear();
+              //se esta selecionado
               const isSelected =
                 selectedDate && day && day.getTime() === selectedDate.getTime();
 
@@ -485,13 +526,16 @@ export default function CalendarioScreen() {
                   new Date(a.date).getTime() - new Date(b.date).getTime(),
               )
               .map(event => {
+                //divide a data do evento
                 const [year, month, day] = event.date.split('-');
+                //cria objeto date do evento
                 const eventDate = new Date(
                   Number(year),
                   Number(month) - 1,
                   Number(day),
                 );
 
+                //verifica se o evento ja passou
                 const isPast =
                   eventDate <
                   new Date(

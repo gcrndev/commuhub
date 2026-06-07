@@ -22,10 +22,10 @@ import { colors } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
 import { setupPushNotifications } from '../services/notificationService';
 
-// 1. O teu novo import aqui
+
 import { getSupabaseClient } from '../lib/supabase';
 
-// 2. Inicializa o cliente para ser usado no ecrã
+
 const supabase = getSupabaseClient();
 
 export default function PerfilScreen({ navigation }: any) {
@@ -49,7 +49,7 @@ export default function PerfilScreen({ navigation }: any) {
       }
 
       try {
-        //  Tenta ir buscar o perfil do utilizador
+        //  tenta ir buscar o perfil do utilizador
         const { data, error } = await supabase
           .from("profiles")
           .select("push_enabled, notify_votacoes, notify_eventos, notify_documentos")
@@ -57,7 +57,7 @@ export default function PerfilScreen({ navigation }: any) {
 
         if (error) throw error;
 
-        //  Se a linha existir, atualiza o ecrã com os dados reais
+        //  se a linha existir, atualiza o ecrã com os dados reais
         if (data && data.length > 0) {
           const profile = data[0];
           setNotifications((prev) => ({
