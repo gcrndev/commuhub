@@ -17,7 +17,7 @@ export type RootTabParamList = {
   Inicio: undefined;
   Votacoes: { highlightVoteId?: string } | undefined;
   Docs: undefined;
-  Agenda: undefined;
+  Agenda: { highlightEventId?: string } | undefined;
   Perfil: undefined;
 };
 

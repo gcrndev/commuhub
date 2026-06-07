@@ -175,26 +175,32 @@ export default function IndexScreen() {
               proximosEventos.map(event => {
                 const { day, month } = getDayAndMonth(event.date);
                 return (
-                  <View key={event.id} style={globalStyles.indexCard}>
-                    <View style={globalStyles.indexDateBlock}>
-                      <Text style={globalStyles.indexDateDay}>{day}</Text>
-                      <Text style={globalStyles.indexDateMonth}>{month}</Text>
-                    </View>
-                    
-                    <View style={globalStyles.indexCardContent}>
-                      <Text style={globalStyles.indexCardTitle} numberOfLines={1}>{event.title}</Text>
-                      <View style={globalStyles.indexRowInfo}>
-                        <Clock size={14} color="#6B7280" style={{ marginRight: 6 }} />
-                        <Text style={globalStyles.indexCardSubtitle}>{event.time}</Text>
+                  <TouchableOpacity
+                    key={event.id}
+                    activeOpacity={0.7}
+                    onPress={() => navigation.navigate('Agenda', { highlightEventId: event.id })}
+                  >
+                    <View style={globalStyles.indexCard}>
+                      <View style={globalStyles.indexDateBlock}>
+                        <Text style={globalStyles.indexDateDay}>{day}</Text>
+                        <Text style={globalStyles.indexDateMonth}>{month}</Text>
                       </View>
-                      {event.location && (
+                      
+                      <View style={globalStyles.indexCardContent}>
+                        <Text style={globalStyles.indexCardTitle} numberOfLines={1}>{event.title}</Text>
                         <View style={globalStyles.indexRowInfo}>
-                          <MapPin size={14} color="#6B7280" style={{ marginRight: 6 }} />
-                          <Text style={globalStyles.indexCardSubtitle} numberOfLines={1}>{event.location}</Text>
+                          <Clock size={14} color="#6B7280" style={{ marginRight: 6 }} />
+                          <Text style={globalStyles.indexCardSubtitle}>{event.time}</Text>
                         </View>
-                      )}
+                        {event.location && (
+                          <View style={globalStyles.indexRowInfo}>
+                            <MapPin size={14} color="#6B7280" style={{ marginRight: 6 }} />
+                            <Text style={globalStyles.indexCardSubtitle} numberOfLines={1}>{event.location}</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}

@@ -22,9 +22,14 @@ import type { Evento } from '../types/models';
 import { useAuth } from '../context/AuthContext';
 import { getSupabaseClient } from '../lib/supabase';
 
+import { useRoute } from '@react-navigation/native';
+
 export default function CalendarioScreen() {
   const { user } = useAuth();
   const isAdmin = user?.type === 'admin';
+
+  const route = useRoute();
+  const highlightEventId = (route.params as any)?.highlightEventId;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -68,6 +73,18 @@ export default function CalendarioScreen() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (highlightEventId && eventos.length > 0) {
+      const event = eventos.find(e => e.id === highlightEventId);
+      if (event) {
+        const [year, month, day] = event.date.split('-');
+        const eventDate = new Date(Number(year), Number(month) - 1, Number(day));
+        setSelectedDate(eventDate);
+        setSelectedEventInfo(event);
+      }
+    }
+  }, [highlightEventId, eventos]);
 
   const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const monthNames = [
