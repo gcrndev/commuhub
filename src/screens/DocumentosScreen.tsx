@@ -4,6 +4,8 @@ import { Linking, Alert } from 'react-native';
 import { getSupabaseClient } from '../lib/supabase';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Picker } from '@react-native-picker/picker';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 
 import {
   ActivityIndicator,
@@ -104,42 +106,67 @@ async function loadDocumentos() {
     return matchesCat && matchesSearch;
   });
 
-  const handleOpenDocument = async (filePath?: string) => {
+  const handleDownloadDocument = async (filePath?: string, docTitle?: string) => {
     if (!filePath) {
-      Alert.alert(
-        'Erro',
-        'Este documento não tem um ficheiro físico associado no servidor.',
-      );
+      Alert.alert('Erro', 'Este documento não tem um ficheiro físico associado no servidor.');
       return;
     }
 
     try {
       const supabase = getSupabaseClient();
+      const { data } = supabase.storage.from('documentos').getPublicUrl(filePath);
 
-      const { data } = supabase.storage
-        .from('documentos')
-        .getPublicUrl(filePath);
+      if (!data.publicUrl) throw new Error('Não foi possível gerar a URL pública.');
 
-      if (!data.publicUrl) {
-        throw new Error('Não foi possível gerar a URL pública.');
-      }
-      // O bloco catch apanha o erro se o telemóvel se telemovel for lento e nao tiver browser.
-      await Linking.openURL(data.publicUrl);
+      // Avisamos o utilizador que a app está a trabalhar
+      Alert.alert('A carregar...', 'O documento está a ser transferido. Aguarda um momento.');
+
+      const ext = filePath.split('.').pop() || 'pdf';
+      const mimeType = ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
+
+      // 1. Fazemos o fetch diretamente para a cache da nossa App (sem usar o Download Manager)
+      // Usar o fileCache garante que não precisamos de pedir permissões de armazenamento ao utilizador!
+      const res = await ReactNativeBlobUtil.config({
+        fileCache: true,
+        appendExt: ext, 
+      }).fetch('GET', data.publicUrl);
+
+      // 2. A MAGIA ACONTECE AQUI!
+      // Como tirámos o Download Manager, o "await" em cima fez o código esperar.
+      // O código só chega a esta linha quando o download estiver a 100% concluído!
+      ReactNativeBlobUtil.android.actionViewIntent(res.path(), mimeType);
+
     } catch (error) {
-      console.error('Erro ao abrir documento:', error);
-      Alert.alert(
-        'Erro',
-        'Não tens nenhuma aplicação instalada para abrir este ficheiro.',
-      );
+      console.error('Erro ao baixar e abrir documento:', error);
+      Alert.alert('Erro', 'Falha ao transferir e abrir o ficheiro.');
     }
   };
 
-  // --- INÍCIO DAS FUNÇÕES DE UPLOAD ---
-  // Abre a galeria
-  const handlePickImage = async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo' });
-    if (!result.didCancel && result.assets && result.assets.length > 0) {
-      setSelectedImage(result.assets[0]);
+
+  // Abre o explorador de ficheiros do telemóvel (PDFs e Imagens)
+  const handlePickFile = async () => {
+    try {
+      // Abre o explorador pedindo explicitamente por PDFs ou Imagens
+      const [result] = await pick({
+        type: [types.pdf, types.images], 
+      });
+
+      // Guardamos o ficheiro no estado tal como o Image Picker fazia
+      setSelectedImage({
+        uri: result.uri,
+        type: result.type,
+        fileName: result.name, 
+        fileSize: result.size,
+      });
+      
+    } catch (err) {
+      // Se o erro for apenas o utilizador a cancelar (fechar a janela), ignoramos
+      if (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) {
+        console.log('O utilizador cancelou a seleção.');
+      } else {
+        // Se for um erro a sério, avisamos
+        Alert.alert('Erro', 'Não foi possível selecionar o documento.');
+      }
     }
   };
 
@@ -371,7 +398,7 @@ async function loadDocumentos() {
                   )}
                   <TouchableOpacity
                     style={globalStyles.downloadBtn}
-                    onPress={() => handleOpenDocument(item.filePath)}
+                    onPress={() => handleDownloadDocument(item.filePath)}
                   >
                     <Download stroke="#FFF" width={20} height={20} />
                   </TouchableOpacity>
@@ -450,18 +477,18 @@ async function loadDocumentos() {
             </View>
             
             <TouchableOpacity
-              onPress={handlePickImage}
+              onPress={handlePickFile}
               style={{
-                backgroundColor: '#e0e0e0',
+                backgroundColor: '#0052FF',
                 padding: 10,
                 borderRadius: 5,
                 marginBottom: 15,
               }}
             >
-              <Text style={{ textAlign: 'center', color: '#000' }}>
+              <Text style={{ textAlign: 'center', color: '#E5E7EB' }}>
                 {selectedImage
                   ? `Imagem selecionada: ${selectedImage.fileName}`
-                  : '📷 Escolher Imagem do Telemóvel'}
+                  : '📄 Escolher documento do Telemóvel'}
               </Text>
             </TouchableOpacity>
 
