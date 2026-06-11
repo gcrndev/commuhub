@@ -1,6 +1,22 @@
 import { Alert } from 'react-native';
 import RNCalendarEvents from 'react-native-calendar-events';
 
+async function getDefaultCalendarId(): Promise<string | null> {
+  try {
+    const calendars = await RNCalendarEvents.findCalendars();
+    const preferred = calendars.find(
+      (c) => c.allowsModifications && c.isPrimary,
+    );
+    if (preferred) return preferred.id;
+    const writable = calendars.find((c) => c.allowsModifications);
+    if (writable) return writable.id;
+    if (calendars.length > 0) return calendars[0].id;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function openCalendarWithEvent(evento: {
   title: string;
   date: string;
@@ -18,6 +34,12 @@ export async function openCalendarWithEvent(evento: {
       return;
     }
 
+    const calendarId = await getDefaultCalendarId();
+    if (!calendarId) {
+      Alert.alert('Erro', 'Nenhum calendário disponível no dispositivo.');
+      return;
+    }
+
     const [year, month, day] = evento.date.split('-').map(Number);
     const [hour, minute] = evento.time.split(':').map(Number);
 
@@ -27,7 +49,7 @@ export async function openCalendarWithEvent(evento: {
     await RNCalendarEvents.saveEvent(
       evento.title,
       {
-        calendarId: '2',
+        calendarId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         location: evento.location,

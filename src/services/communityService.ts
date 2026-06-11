@@ -34,6 +34,7 @@ type EventoRow = {
   date: string;
   time: string;
   location: string;
+  description: string;
 };
 
 export async function getVotacoes(userId?: string): Promise<Votacao[]> {
@@ -143,7 +144,7 @@ export async function getEventos(): Promise<Evento[]> {
 
   const { data, error } = await supabase
     .from('eventos')
-    .select('id,title,date,time,location')
+    .select('id,title,date,time,location, description')
     .order('date', { ascending: true })
     .order('time', { ascending: true });
 
@@ -157,6 +158,7 @@ export async function getEventos(): Promise<Evento[]> {
     date: row.date,
     time: row.time.slice(0, 5),
     location: row.location,
+    description: row.description,
   }));
 }
 

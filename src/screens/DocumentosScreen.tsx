@@ -107,39 +107,37 @@ async function loadDocumentos() {
   });
 
   const handleDownloadDocument = async (filePath?: string, docTitle?: string) => {
-    if (!filePath) {
-      Alert.alert('Erro', 'Este documento não tem um ficheiro físico associado no servidor.');
-      return;
-    }
+  if (!filePath) return;
 
-    try {
-      const supabase = getSupabaseClient();
-      const { data } = supabase.storage.from('documentos').getPublicUrl(filePath);
+  try {
+    const supabase = getSupabaseClient();
+    const { data } = supabase.storage.from('documentos').getPublicUrl(filePath);
 
-      if (!data.publicUrl) throw new Error('Não foi possível gerar a URL pública.');
+    // 1. Determina a extensão e o MIME type de forma segura
+    const ext = filePath.split('.').pop()?.toLowerCase() || 'pdf';
+    let mimeType = 'application/octet-stream'; // Tipo genérico seguro
 
-      // Avisamos o utilizador que a app está a trabalhar
-      Alert.alert('A carregar...', 'O documento está a ser transferido. Aguarda um momento.');
+    if (ext === 'pdf') mimeType = 'application/pdf';
+    else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+    else if (ext === 'png') mimeType = 'image/png';
 
-      const ext = filePath.split('.').pop() || 'pdf';
-      const mimeType = ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
+    const res = await ReactNativeBlobUtil.config({
+      fileCache: true,
+      appendExt: ext, 
+    }).fetch('GET', data.publicUrl);
 
-      // 1. Fazemos o fetch diretamente para a cache da nossa App (sem usar o Download Manager)
-      // Usar o fileCache garante que não precisamos de pedir permissões de armazenamento ao utilizador!
-      const res = await ReactNativeBlobUtil.config({
-        fileCache: true,
-        appendExt: ext, 
-      }).fetch('GET', data.publicUrl);
+    // 2. Abertura corrigida
+    // Adicionamos um pequeno timeout para garantir que o ficheiro foi totalmente escrito no disco
+    setTimeout(() => {
+      ReactNativeBlobUtil.android.actionViewIntent(res.path(), mimeType)
+        .catch((err) => {
+          Alert.alert('Erro', 'Não encontrámos uma aplicação para abrir este tipo de ficheiro.');
+        });
+    }, 500);
 
-      // 2. A MAGIA ACONTECE AQUI!
-      // Como tirámos o Download Manager, o "await" em cima fez o código esperar.
-      // O código só chega a esta linha quando o download estiver a 100% concluído!
-      ReactNativeBlobUtil.android.actionViewIntent(res.path(), mimeType);
-
-    } catch (error) {
-      console.error('Erro ao baixar e abrir documento:', error);
-      Alert.alert('Erro', 'Falha ao transferir e abrir o ficheiro.');
-    }
+  } catch (error) {
+    Alert.alert('Erro', 'Falha ao transferir e abrir o ficheiro.');
+  }
   };
 
 

@@ -96,15 +96,19 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file('commuhub-release.keystore')
+            storePassword System.getenv("RELEASE_STORE_PASSWORD") ?: "fPkhyIqdH9TJUj7cWOug"
+            keyAlias System.getenv("RELEASE_KEY_ALIAS") ?: "commuhub"
+            keyPassword System.getenv("RELEASE_STORE_PASSWORD") ?: "fPkhyIqdH9TJUj7cWOug"
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

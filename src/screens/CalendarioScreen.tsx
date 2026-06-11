@@ -780,19 +780,7 @@ export default function CalendarioScreen() {
               elevation: 10,
             }}
           >
-            <View
-              style={{
-                width: '100%',
-                height: 160,
-                backgroundColor: '#e2e8f0',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: '#64748b', fontWeight: 'bold' }}>
-                [ Imagem do Evento ]
-              </Text>
-            </View>
+
             <View style={{ padding: 20 }}>
               <Text
                 style={{
@@ -836,17 +824,11 @@ export default function CalendarioScreen() {
                   {selectedEventInfo?.location}
                 </Text>
               </View>
-              <Text
-                style={{
-                  fontSize: 15,
-                  color: '#475569',
-                  lineHeight: 22,
-                  marginBottom: 25,
-                }}
-              >
-                {selectedEventInfo?.description ||
-                  'Nenhuma descrição fornecida para este evento.'}
-              </Text>
+              {selectedEventInfo?.description && (
+                <Text style={{ fontSize: 15, color: '#475569', lineHeight: 22, marginBottom: 25 }}>
+                  {selectedEventInfo.description}
+                </Text>
+              )}
               <TouchableOpacity
                 onPress={() =>
                   selectedEventInfo && addToNativeCalendar(selectedEventInfo)
